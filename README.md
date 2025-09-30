@@ -1,6 +1,5 @@
 # The Farm Mark II - Spooky Labs Trading Platform
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Platform-blue.svg)](https://cloud.google.com/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-326CE5.svg)](https://kubernetes.io/)
 [![Terraform](https://img.shields.io/badge/Terraform-Infrastructure-623CE4.svg)](https://terraform.io/)
@@ -41,12 +40,12 @@ graph TB
     E --> F
     C --> F
 
-    style A fill:#e1f5fe
-    style B fill:#f3e5f5
-    style C fill:#e8f5e9
-    style D fill:#fff3e0
-    style E fill:#fce4ec
-    style F fill:#f1f8e9
+    style A fill:#4A90E2,stroke:#2E5C8A,stroke-width:2px,color:#fff
+    style B fill:#7B68EE,stroke:#4B3A9E,stroke-width:2px,color:#fff
+    style C fill:#50C878,stroke:#2E8B57,stroke-width:2px,color:#fff
+    style D fill:#FF8C42,stroke:#CC6F33,stroke-width:2px,color:#fff
+    style E fill:#E85D75,stroke:#B8475E,stroke-width:2px,color:#fff
+    style F fill:#9ACD32,stroke:#6B8E23,stroke-width:2px,color:#fff
 ```
 
 ## 🎯 **Quick Start**
@@ -232,10 +231,6 @@ All documentation is organized in the `docs/` directory:
 4. Commit your changes (`git commit -m 'Add amazing feature'`)
 5. Push to the branch (`git push origin feature/amazing-feature`)
 6. Open a Pull Request
-
-## 📄 **License**
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 **Support**
 
