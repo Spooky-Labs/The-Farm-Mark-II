@@ -1,0 +1,187 @@
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.example.copy
+*.env
+
+# Terraform files
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+terraform/outputs.json
+terraform/tfplan
+
+# Google Cloud credentials
+*.json
+!schemas/*.json
+service-account-*.json
+gcp-credentials.json
+google-credentials.json
+
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+.npm/
+.yarn/
+.pnp.*
+.pnpm-debug.log*
+
+# Python dependencies
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg-info/
+.eggs/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+htmlcov/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output/
+
+# Docker
+.dockerignore
+Dockerfile.local
+
+# Kubernetes secrets
+kubernetes/secrets/
+k8s-secrets/
+
+# Test outputs
+test-report.md
+test-results/
+*.test
+.coverage
+
+# Build outputs
+dist/
+build/
+out/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# OS generated files
+.DS_Store?
+ehthumbs.db
+Icon?
+
+# Cloud Build
+cloudbuild.yaml.local
+
+# BigQuery temp files
+*.bq
+
+# Local development
+local/
+dev/
+development/
+
+# Secrets and sensitive data
+secrets/
+credentials/
+keys/
+certs/
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+
+# Firebase
+.firebase/
+firebase-debug.log
+.firebaserc.local
+
+# Monitoring and observability
+monitoring/local/
+
+# Cache
+.cache/
+*.cache
+
+# Lock files (keep only package-lock.json for Cloud Functions)
+yarn.lock
+pnpm-lock.yaml
+
+# Cloud Functions specific
+cloud-functions/*/node_modules/
+cloud-functions/*/.env
+cloud-functions/*/logs/
+
+# Data files
+data/
+*.csv
+*.xlsx
+*.json.gz
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Local testing artifacts
+/tmp_*
+test_*
+local_test_*
+sample_data/

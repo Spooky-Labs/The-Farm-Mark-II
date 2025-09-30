@@ -1,0 +1,224 @@
+# Unified Market Data Ingester - GKE Deployment
+# Consolidates stock + crypto + news data ingestion
+# Runs 24/7 for continuous WebSocket streaming
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: data-ingestion
+  labels:
+    name: data-ingestion
+    component: infrastructure
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unified-ingester-config
+  namespace: data-ingestion
+data:
+  # Stock symbols to track
+  symbols.txt: |
+    SPY
+    QQQ
+    AAPL
+    MSFT
+    GOOGL
+    AMZN
+    TSLA
+    NVDA
+    META
+    JPM
+
+  # Crypto pairs to track
+  crypto_symbols.txt: |
+    BTC/USD
+    ETH/USD
+    SOL/USD
+
+  # News polling interval (seconds)
+  NEWS_POLL_INTERVAL: "300"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unified-market-data-ingester
+  namespace: data-ingestion
+  labels:
+    app: unified-ingester
+    component: data-ingestion
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: unified-ingester
+  template:
+    metadata:
+      labels:
+        app: unified-ingester
+        component: data-ingestion
+    spec:
+      serviceAccountName: data-ingester-sa
+
+      containers:
+      - name: ingester
+        image: gcr.io/PROJECT_ID/unified-market-data-ingester:latest
+        imagePullPolicy: Always
+
+        env:
+        - name: PROJECT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: platform-config
+              key: project_id
+
+        - name: ALPACA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: alpaca-credentials
+              key: api-key
+
+        - name: ALPACA_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: alpaca-credentials
+              key: secret-key
+
+        - name: PUBSUB_TOPIC_NAME
+          value: "market-data"
+
+        - name: NEWS_TOPIC_NAME
+          value: "news-data"
+
+        - name: NEWS_POLL_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              name: unified-ingester-config
+              key: NEWS_POLL_INTERVAL
+
+        # Resource requests and limits
+        resources:
+          requests:
+            cpu: "250m"      # 0.25 CPU
+            memory: "512Mi"  # 512MB RAM
+          limits:
+            cpu: "500m"      # 0.5 CPU max
+            memory: "1Gi"    # 1GB RAM max
+
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+        # Mount config files
+        volumeMounts:
+        - name: config
+          mountPath: /app/symbols.txt
+          subPath: symbols.txt
+        - name: config
+          mountPath: /app/crypto_symbols.txt
+          subPath: crypto_symbols.txt
+
+      volumes:
+      - name: config
+        configMap:
+          name: unified-ingester-config
+
+      # Restart policy
+      restartPolicy: Always
+
+      # Node affinity (optional - prefer preemptible nodes for cost savings)
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: cloud.google.com/gke-preemptible
+                operator: In
+                values:
+                - "true"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: unified-ingester-service
+  namespace: data-ingestion
+  labels:
+    app: unified-ingester
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: unified-ingester
+
+---
+# Service Account with Workload Identity
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: data-ingester-sa
+  namespace: data-ingestion
+  annotations:
+    iam.gke.io/gcp-service-account: data-ingester@PROJECT_ID.iam.gserviceaccount.com
+
+---
+# HorizontalPodAutoscaler (optional - for scaling during high load)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: unified-ingester-hpa
+  namespace: data-ingestion
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: unified-market-data-ingester
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# PodDisruptionBudget (ensure at least 1 pod always running)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: unified-ingester-pdb
+  namespace: data-ingestion
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: unified-ingester

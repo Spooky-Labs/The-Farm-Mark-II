@@ -1,0 +1,136 @@
+[
+  {
+    "name": "decision_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Unique identifier for the trading decision"
+  },
+  {
+    "name": "timestamp",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "When the decision was made"
+  },
+  {
+    "name": "agent_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Unique identifier for the trading agent"
+  },
+  {
+    "name": "user_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "User who owns the agent"
+  },
+  {
+    "name": "session_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Backtest or paper trading session ID"
+  },
+  {
+    "name": "symbol",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Stock symbol (e.g., AAPL, SPY)"
+  },
+  {
+    "name": "action_type",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "BUY, SELL, or HOLD"
+  },
+  {
+    "name": "quantity",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Number of shares to trade"
+  },
+  {
+    "name": "price",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Price at which trade was executed"
+  },
+  {
+    "name": "confidence",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "Agent's confidence in the decision (0.0 to 1.0)"
+  },
+  {
+    "name": "reasoning",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Agent's explanation for the decision"
+  },
+  {
+    "name": "market_context",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "description": "Market context at time of decision",
+    "fields": [
+      {
+        "name": "current_price",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "volume",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "daily_change",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "daily_change_percent",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "market_sentiment",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "news_sentiment",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      }
+    ]
+  },
+  {
+    "name": "portfolio_value",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "Total portfolio value at time of decision"
+  },
+  {
+    "name": "position_value",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Value of the position being traded"
+  },
+  {
+    "name": "indicators",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "JSON string of technical indicators used"
+  },
+  {
+    "name": "trade_pnl",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Profit/Loss for this trade (filled after close)"
+  },
+  {
+    "name": "daily_return",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Daily portfolio return"
+  }
+]

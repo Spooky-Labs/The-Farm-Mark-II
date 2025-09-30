@@ -1,0 +1,81 @@
+# Simplified Configuration for Milestone 0
+# Just Alpaca market data + news (built into Alpaca)
+
+# Data sources configuration
+sources:
+  alpaca:
+    enabled: true
+    api_key_env: "ALPACA_API_KEY"
+    secret_key_env: "ALPACA_SECRET_KEY"
+    base_url: "https://data.alpaca.markets"
+    # Major liquid stocks for Milestone 0
+    stock_symbols:
+      - "SPY"   # S&P 500 ETF
+      - "QQQ"   # Nasdaq 100 ETF
+      - "AAPL"  # Apple
+      - "MSFT"  # Microsoft
+      - "GOOGL" # Google
+      - "AMZN"  # Amazon
+      - "TSLA"  # Tesla
+      - "NVDA"  # Nvidia
+      - "META"  # Meta
+      - "JPM"   # JP Morgan
+    # Major crypto pairs
+    crypto_symbols:
+      - "BTC/USD"
+      - "ETH/USD"
+      - "SOL/USD"
+    timeframes:
+      - "1Min"
+      - "5Min"
+      - "1Day"
+
+    # Alpaca has built-in news - we'll use that
+    news_enabled: true
+
+  # Disable all other sources for Milestone 0
+  news:
+    enabled: false
+
+  alternative_data:
+    enabled: false
+
+# BigQuery configuration
+bigquery:
+  project_id_env: "PROJECT_ID"
+  dataset: "market_data"
+  tables:
+    bars: "bars"
+    news: "news_articles"
+
+# Pub/Sub configuration
+pubsub:
+  project_id_env: "PROJECT_ID"
+  topics:
+    market_data: "market-data"
+    news_data: "news-data"
+
+# Ingestion intervals (in seconds)
+intervals:
+  health_check: 60
+
+# Batch sizes
+batch_sizes:
+  market_data: 1000
+  news_data: 100
+
+# Retry configuration
+retry:
+  max_attempts: 3
+  backoff_factor: 2
+  max_delay: 60
+
+# Logging configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Performance monitoring
+monitoring:
+  enabled: true
+  metrics_port: 8080

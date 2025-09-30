@@ -1,0 +1,140 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: paper-trading
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: paper-trader
+  namespace: paper-trading
+spec:
+  serviceName: paper-trader
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paper-trader
+  template:
+    metadata:
+      labels:
+        app: paper-trader
+    spec:
+      serviceAccountName: paper-trading-sa
+      containers:
+      - name: paper-trader
+        image: gcr.io/PROJECT_ID/paper-trader:latest
+        imagePullPolicy: Always
+        env:
+        - name: PROJECT_ID
+          value: "PROJECT_ID"
+        - name: SESSION_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: AGENT_ID
+          value: "AGENT_ID_PLACEHOLDER"
+        - name: USER_ID
+          value: "USER_ID_PLACEHOLDER"
+        - name: MODE
+          value: "PAPER"
+        - name: FMEL_ENABLED
+          value: "true"
+        - name: CONFIG
+          value: |
+            {
+              "symbols": ["SPY", "QQQ", "AAPL"],
+              "timeframe": "1Min",
+              "initial_cash": 100000,
+              "risk_level": "medium"
+            }
+        - name: ALPACA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: alpaca-credentials
+              key: ALPACA_API_KEY
+        - name: ALPACA_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: alpaca-credentials
+              key: ALPACA_SECRET_KEY
+        - name: ALPACA_BASE_URL
+          value: "https://paper-api.alpaca.markets"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        volumeMounts:
+        - name: agent-code
+          mountPath: /app/strategies
+  volumeClaimTemplates:
+  - metadata:
+      name: agent-code
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paper-trader
+  namespace: paper-trading
+spec:
+  clusterIP: None
+  selector:
+    app: paper-trader
+  ports:
+  - port: 8080
+    targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: paper-trading-sa
+  namespace: paper-trading
+  annotations:
+    iam.gke.io/gcp-service-account: paper-trading@PROJECT_ID.iam.gserviceaccount.com
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: paper-trader-role
+  namespace: paper-trading
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: paper-trader-rolebinding
+  namespace: paper-trading
+subjects:
+- kind: ServiceAccount
+  name: paper-trading-sa
+  namespace: paper-trading
+roleRef:
+  kind: Role
+  name: paper-trader-role
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,106 @@
+[
+  {
+    "name": "article_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Unique identifier for the article"
+  },
+  {
+    "name": "published_at",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "When the article was published"
+  },
+  {
+    "name": "title",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Article title"
+  },
+  {
+    "name": "summary",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Article summary"
+  },
+  {
+    "name": "content",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Full article content"
+  },
+  {
+    "name": "url",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Article URL"
+  },
+  {
+    "name": "source",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "News source"
+  },
+  {
+    "name": "author",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Article author"
+  },
+  {
+    "name": "symbols",
+    "type": "STRING",
+    "mode": "REPEATED",
+    "description": "Stock symbols mentioned in the article"
+  },
+  {
+    "name": "category",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Article category (earnings, merger, market, etc.)"
+  },
+  {
+    "name": "sentiment",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "description": "Sentiment analysis results",
+    "fields": [
+      {
+        "name": "polarity",
+        "type": "FLOAT",
+        "mode": "NULLABLE",
+        "description": "Sentiment polarity (-1.0 to 1.0)"
+      },
+      {
+        "name": "subjectivity",
+        "type": "FLOAT",
+        "mode": "NULLABLE",
+        "description": "Sentiment subjectivity (0.0 to 1.0)"
+      },
+      {
+        "name": "label",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Sentiment label (positive, negative, neutral)"
+      }
+    ]
+  },
+  {
+    "name": "importance_score",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Calculated importance score (0.0 to 1.0)"
+  },
+  {
+    "name": "ingested_at",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "When the article was ingested"
+  },
+  {
+    "name": "processed_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "When sentiment analysis was completed"
+  }
+]

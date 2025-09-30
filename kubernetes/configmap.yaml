@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-config
+  namespace: paper-trading
+  labels:
+    environment: prod
+    purpose: agent-configuration
+data:
+  # Project configuration
+  PROJECT_ID: "PLACEHOLDER_PROJECT_ID"
+  REGION: "us-central1"
+
+  # BigQuery configuration
+  BQ_DATASET_FMEL: "fmel"
+  BQ_DATASET_MARKET: "market_data"
+
+  # Pub/Sub configuration
+  PUBSUB_TOPIC_FMEL: "fmel-decisions"
+
+  # Application configuration
+  MODE: "PAPER"
+  FMEL_ENABLED: "true"
+
+  # Logging configuration
+  LOG_LEVEL: "INFO"
+  PYTHONUNBUFFERED: "1"

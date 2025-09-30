@@ -1,0 +1,14 @@
+# Core dependencies matching proven Alpaca implementation
+alpaca-py>=0.6.1
+google-cloud-pubsub>=2.18.0
+
+# Additional data sources (optional extensions)
+google-cloud-bigquery>=3.11.4
+requests>=2.31.0
+pandas>=1.5.3
+pyyaml>=6.0
+flask>=2.3.0
+
+# Alternative data sources
+textblob>=0.17.1
+python-dateutil>=2.8.2
