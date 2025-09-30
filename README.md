@@ -21,31 +21,98 @@ Spooky Labs is a complete trading platform that enables AI agents to make autono
 ### **Architecture Highlights:**
 
 ```mermaid
-graph TB
-    subgraph "Application Layer"
-        A[Unified API Gateway<br/>Cloud Function<br/>• Agent submission<br/>• Account mgmt<br/>• Leaderboards]
-        B[Data Ingestion<br/>GKE 24/7<br/>• WebSocket conn<br/>• Market data<br/>• News feed]
-        C[Paper Trading<br/>GKE StatefulSets<br/>• Alpaca broker<br/>• Strategy exec<br/>• FMEL recording]
+flowchart TB
+    subgraph clients["🌐 Client Layer"]
+        direction LR
+        web["Web Dashboard<br/>React SPA"]
+        api_clients["API Clients<br/>Python/JS SDK"]
+        traders["Trading Agents<br/>Custom Strategies"]
     end
 
-    subgraph "Data & Infrastructure Layer"
-        D[Memorystore Redis<br/>Sub-10ms<br/>• Leaderboards<br/>• Session cache]
-        E[Pub/Sub<br/>Streaming<br/>• Market data<br/>• Alternative data]
-        F[BigQuery<br/>FMEL Storage<br/>• Decisions<br/>• Analytics]
+    subgraph gcp["☁️ Google Cloud Platform"]
+        subgraph compute["Compute Layer"]
+            direction TB
+            gateway["🚪 API Gateway<br/>Cloud Function Gen2<br/>━━━━━━━━━━<br/>POST /api/agents/submit<br/>POST /api/broker/create<br/>GET /api/leaderboard<br/>GET /api/fmel/decisions"]
+
+            subgraph gke["⚙️ GKE Private Cluster"]
+                direction LR
+                ingester["📡 Unified Ingester<br/>Deployment 24/7<br/>━━━━━━━━━━<br/>• Alpaca WebSocket<br/>• Stock quotes<br/>• Crypto quotes<br/>• News feed"]
+
+                subgraph trading["🤖 Paper Trading"]
+                    direction TB
+                    trader1["Agent Pod 1<br/>StatefulSet<br/>━━━━━━━━━━<br/>• Backtrader engine<br/>• FMEL recorder<br/>• Strategy execution"]
+                    trader2["Agent Pod 2<br/>StatefulSet"]
+                    trader3["Agent Pod N<br/>StatefulSet"]
+                end
+            end
+        end
+
+        subgraph data["💾 Data Layer"]
+            direction TB
+            redis[("⚡ Memorystore Redis<br/>━━━━━━━━━━<br/>• Leaderboard cache<br/>• Session management<br/>• Rate limiting<br/><10ms latency")]
+
+            pubsub["📬 Pub/Sub Topics<br/>━━━━━━━━━━<br/>• market-data-stocks<br/>• market-data-crypto<br/>• news-feed<br/>• trading-signals"]
+
+            bq[("📊 BigQuery<br/>━━━━━━━━━━<br/>• fmel_decisions table<br/>• market_data table<br/>• agent_performance table<br/>Partitioned by date<br/>Clustered by agent_id")]
+
+            firestore[("🔥 Firestore<br/>━━━━━━━━━━<br/>• User accounts<br/>• Agent metadata<br/>• Real-time positions")]
+
+            storage[("📦 Cloud Storage<br/>━━━━━━━━━━<br/>• Agent code bundles<br/>• Backtest results<br/>• Log archives")]
+        end
+
+        subgraph external["🔌 External Services"]
+            direction TB
+            alpaca["💼 Alpaca Markets<br/>━━━━━━━━━━<br/>• Paper trading API<br/>• Market data stream<br/>• Order execution"]
+
+            firebase["🔐 Firebase Auth<br/>━━━━━━━━━━<br/>• User authentication<br/>• JWT validation<br/>• API key mgmt"]
+        end
     end
 
-    B --> E
-    E --> C
-    A --> D
-    E --> F
-    C --> F
+    %% Client connections
+    web --> gateway
+    api_clients --> gateway
+    traders --> gateway
 
-    style A fill:#4A90E2,stroke:#2E5C8A,stroke-width:2px,color:#fff
-    style B fill:#7B68EE,stroke:#4B3A9E,stroke-width:2px,color:#fff
-    style C fill:#50C878,stroke:#2E8B57,stroke-width:2px,color:#fff
-    style D fill:#FF8C42,stroke:#CC6F33,stroke-width:2px,color:#fff
-    style E fill:#E85D75,stroke:#B8475E,stroke-width:2px,color:#fff
-    style F fill:#9ACD32,stroke:#6B8E23,stroke-width:2px,color:#fff
+    %% API Gateway connections
+    gateway <-->|"Cache R/W"| redis
+    gateway -->|"Store decisions"| bq
+    gateway <-->|"User auth"| firebase
+    gateway -->|"Trigger deployment"| trading
+
+    %% Ingester connections
+    alpaca -->|"WebSocket stream"| ingester
+    ingester -->|"Publish quotes"| pubsub
+    ingester -->|"Archive data"| bq
+
+    %% Pub/Sub fan-out
+    pubsub -->|"Market data"| trader1
+    pubsub -->|"Market data"| trader2
+    pubsub -->|"Market data"| trader3
+    pubsub -->|"Batch insert"| bq
+
+    %% Trading agent connections
+    trader1 <-->|"Orders & positions"| alpaca
+    trader2 <-->|"Orders & positions"| alpaca
+    trader3 <-->|"Orders & positions"| alpaca
+
+    trader1 -->|"FMEL records"| bq
+    trader2 -->|"FMEL records"| bq
+    trader3 -->|"FMEL records"| bq
+
+    trader1 -->|"Store strategy code"| storage
+    trader1 <-->|"Real-time state"| firestore
+
+    %% Styling
+    classDef clientStyle fill:#4A90E2,stroke:#2E5C8A,stroke-width:3px,color:#fff
+    classDef computeStyle fill:#7B68EE,stroke:#4B3A9E,stroke-width:3px,color:#fff
+    classDef dataStyle fill:#FF8C42,stroke:#CC6F33,stroke-width:3px,color:#fff
+    classDef externalStyle fill:#50C878,stroke:#2E8B57,stroke-width:3px,color:#fff
+    classDef gkeStyle fill:#9ACD32,stroke:#6B8E23,stroke-width:2px,color:#333
+
+    class web,api_clients,traders clientStyle
+    class gateway,ingester,trader1,trader2,trader3 computeStyle
+    class redis,pubsub,bq,firestore,storage dataStyle
+    class alpaca,firebase externalStyle
 ```
 
 ## 🎯 **Quick Start**
