@@ -10,7 +10,7 @@ All BigQuery table schemas have been migrated to Terraform for proper Infrastruc
 
 **Before (Manual):**
 - Table schemas defined in JSON files (`schemas/*.json`)
-- Tables created manually via `bq mk` commands in `scripts/deploy.sh`
+- Tables created manually via `bq mk` commands in `scripts/deployment/deploy.sh`
 - Separate from infrastructure deployment
 
 **Now (Terraform):**

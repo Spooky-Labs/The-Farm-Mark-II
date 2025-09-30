@@ -570,10 +570,10 @@ gcloud container clusters get-credentials farm-cluster --region us-central1
 ### **3. Deploy Services**
 ```bash
 # Deploy all cloud functions and containers
-bash scripts/deploy.sh
+bash scripts/deployment/deploy.sh
 
 # Verify deployment
-bash scripts/test-deployment.sh
+bash scripts/testing/test-deployment.sh
 ```
 
 ### **4. Submit Your First Agent**
@@ -672,35 +672,44 @@ The-Farm-Mark-II/
 
 ```bash
 # Run all tests
-bash scripts/verify-system.sh      # System verification (48 tests)
+bash scripts/utilities/verify-system.sh      # System verification (48 tests)
 bash tests/test_terraform_quick.sh # Terraform validation (17 tests)
 node tests/test_api_gateway.js     # API Gateway tests
 python tests/test_data_flow.py     # Data flow integration tests
-bash scripts/test-integration.sh   # Integration tests
+bash scripts/testing/test-integration.sh   # Integration tests
 ```
 
 ## 📚 **Documentation**
 
-All documentation is organized in the `docs/` directory:
+All documentation is organized in the `docs/` directory. **[Start here →](docs/README.md)**
 
-### Architecture
+### 🏗️ Architecture
 - **[Architecture Guide](docs/architecture/ARCHITECTURE.md)** - Complete system design
 - **[FMEL Guide](docs/architecture/FMEL_COMPLETE.md)** - Explainability layer documentation
 - **[Agent Runtime](docs/architecture/AGENT_RUNTIME.md)** - Agent execution environment
 - **[Data Platform](docs/architecture/DATA_PLATFORM.md)** - Data infrastructure details
 
-### Deployment
+### 🚀 Deployment
 - **[Deployment Guide](docs/deployment/DEPLOYMENT.md)** - Complete deployment guide with step-by-step instructions
 
-### Operations
+### 💻 Development
+- **[Project Structure](docs/development/PROJECT_STRUCTURE.md)** - Repository organization
+- **[Testing Guide](docs/development/TESTING.md)** - Testing strategy and test suite documentation
+
+### ⚙️ Operations
 - **[Operations Guide](docs/operations/OPERATIONS.md)** - Operational runbook
 - **[Security Guide](docs/operations/SECURITY.md)** - Security implementation details
+- **[Troubleshooting](docs/operations/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[Roadmap](docs/operations/ROADMAP.md)** - Development roadmap
 
-### Reference
+### 📖 Reference
 - **[API Reference](docs/reference/ENDPOINTS.md)** - Complete API documentation
 - **[Project Memory](docs/reference/MEMORY.md)** - Project evolution, history, and key decisions
 - **[Redis Leaderboard](docs/reference/REDIS_LEADERBOARD_SETUP.md)** - Leaderboard implementation
+- **[Deprecated Components](docs/reference/DEPRECATED_COMPONENTS.md)** - Deprecated components reference
+
+### 🔄 Migrations
+- **[Migration Index](docs/migrations/README.md)** - Platform migration tracking
 
 ## 🛣️ **Development Roadmap**
 

@@ -352,10 +352,10 @@ bq load --source_format=AVRO \
 gcloud firestore import gs://backups/firestore/YYYYMMDD
 
 # 4. Redeploy services
-bash scripts/deploy-all.sh
+bash scripts/deployment/deploy.sh
 
 # 5. Verify system health
-bash scripts/health-check-all.sh
+bash scripts/utilities/verify-system.sh
 ```
 
 #### 2. Regional Failover

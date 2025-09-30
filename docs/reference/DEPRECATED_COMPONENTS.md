@@ -1,8 +1,14 @@
-# Cloud Functions Architecture Notes
+# Deprecated Components
 
-## ✅ Active Cloud Functions
+This document tracks deprecated components across the entire platform.
 
-### 1. `api-gateway/` (Node.js)
+---
+
+## Cloud Functions
+
+### ✅ Active Cloud Functions
+
+#### 1. `api-gateway/` (Node.js)
 **Primary unified API endpoint for all operations**
 
 Routes:
@@ -13,7 +19,7 @@ Routes:
 - `/api/leaderboard` - Redis-backed leaderboards
 - `/api/fmel/*` - FMEL analytics
 
-### 2. `create-account/` (Python)
+#### 2. `create-account/` (Python)
 **Alpaca Broker API account creation**
 
 - **Why Python?** Alpaca Broker API only works properly with Python SDK
@@ -21,7 +27,7 @@ Routes:
 - **Proxy:** Available via `POST /api/paper-trading/create-account`
 - **Alternative:** `POST /api/broker/create-account` (simplified Node.js version for basic paper trading)
 
-### 3. `fund-account/` (Python)
+#### 3. `fund-account/` (Python)
 **Alpaca Broker API account funding**
 
 - **Why Python?** Alpaca Broker API only works properly with Python SDK
@@ -29,9 +35,9 @@ Routes:
 - **Proxy:** Available via `POST /api/paper-trading/fund-account`
 - **Alternative:** `POST /api/broker/fund-account` (simplified Node.js version for basic paper trading)
 
-## Architecture Design
+### Architecture Design
 
-### Why Both Python + Node.js?
+**Why Both Python + Node.js?**
 
 **Python Functions (create-account, fund-account):**
 - Use Alpaca's official `alpaca-py` Broker API SDK
@@ -64,56 +70,66 @@ POST /api/paper-trading/create-account  // Proxies to Python
 POST /api/paper-trading/fund-account    // Proxies to Python
 ```
 
-## Deployment
+---
 
-Deploy all three Cloud Functions:
+## Data Ingesters
 
+### ❌ Deprecated: `alpaca-websocket-streamer/`
+
+**Reason:** Redundant - functionality is fully covered by `unified-ingester/`
+
+**What it did:**
+- WebSocket streaming from Alpaca (stocks only)
+- Published to Pub/Sub
+- Prometheus metrics
+
+**Why deprecated:**
+- `unified-ingester/` already handles:
+  - ✅ Stocks WebSocket streaming (same functionality)
+  - ✅ Crypto WebSocket streaming (additional)
+  - ✅ News API polling (additional)
+  - ✅ Better configuration (YAML-based)
+  - ✅ More maintainable (single codebase)
+
+### ✅ Current: `unified-ingester/`
+
+**Keep and use this one!**
+
+**Features:**
+- Alpaca stocks + crypto WebSocket streaming
+- Alpaca news API polling
+- Configurable via `config.milestone0.yaml`
+- Pub/Sub publishing
+- Deploy to GKE (24/7 streaming)
+
+**Deployment:**
 ```bash
-# 1. API Gateway (Node.js)
-cd cloud-functions/api-gateway
-gcloud functions deploy api-gateway \
-  --gen2 \
-  --runtime=nodejs22 \
-  --region=us-central1 \
-  --source=. \
-  --entry-point=api-gateway \
-  --trigger-http \
-  --allow-unauthenticated
-
-# 2. Create Account (Python)
-cd ../create-account
-gcloud functions deploy create-account \
-  --gen2 \
-  --runtime=python311 \
-  --region=us-central1 \
-  --source=. \
-  --entry-point=create_account \
-  --trigger-http \
-  --allow-unauthenticated
-
-# 3. Fund Account (Python)
-cd ../fund-account
-gcloud functions deploy fund-account \
-  --gen2 \
-  --runtime=python311 \
-  --region=us-central1 \
-  --source=. \
-  --entry-point=fund_account \
-  --trigger-http \
-  --allow-unauthenticated
+# Deploy via Kubernetes
+kubectl apply -f kubernetes/data-ingesters/unified-ingester/
 ```
 
-## Environment Variables
+### Migration
 
-All functions need:
-```bash
-ALPACA_API_KEY=your_key
-ALPACA_SECRET_KEY=your_secret
-ALPACA_SANDBOX=true
-PROJECT_ID=your-gcp-project
-```
+No migration needed - just use `unified-ingester/` for all data ingestion.
+
+### Cleanup
+
+This directory can be **deleted after verification:**
+- `data-ingesters/alpaca-websocket-streamer/` ❌
+
+Keep only:
+- `data-ingesters/unified-ingester/` ✅
 
 ---
 
-**Last Updated:** 2025-09-29
-**Status:** Hybrid architecture with Python + Node.js for optimal functionality
+## Summary
+
+| Component | Status | Replacement | Action |
+|-----------|--------|-------------|--------|
+| `alpaca-websocket-streamer/` | ❌ Deprecated | `unified-ingester/` | Can delete |
+| Cloud Functions architecture | ✅ Active | N/A | Keep all 3 functions |
+
+---
+
+**Last Updated:** 2025-09-30
+**Status:** Actively maintained

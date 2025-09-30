@@ -25,6 +25,15 @@ Operational guides for running and maintaining the platform.
 - **[SECURITY.md](operations/SECURITY.md)** - Security implementation and best practices
 - **[ROADMAP.md](operations/ROADMAP.md)** - Development roadmap and future plans
 
+## 💻 Development Documentation
+
+Developer guides and project structure.
+
+- **[PROJECT_STRUCTURE.md](development/PROJECT_STRUCTURE.md)** - Repository organization
+- **SETUP.md** - Development environment setup *(coming soon)*
+- **CONTRIBUTING.md** - Contribution guidelines *(coming soon)*
+- **TESTING.md** - Testing documentation *(coming soon)*
+
 ## 📖 Reference Documentation
 
 Technical references and project history.
@@ -32,6 +41,15 @@ Technical references and project history.
 - **[ENDPOINTS.md](reference/ENDPOINTS.md)** - Complete API endpoint reference
 - **[MEMORY.md](reference/MEMORY.md)** - Project evolution, history, and key decisions
 - **[REDIS_LEADERBOARD_SETUP.md](reference/REDIS_LEADERBOARD_SETUP.md)** - Redis leaderboard implementation
+- **[DEPRECATED_COMPONENTS.md](reference/DEPRECATED_COMPONENTS.md)** - Deprecated components reference
+
+## 🔄 Migrations Documentation
+
+Platform migration tracking.
+
+- **[README.md](migrations/README.md)** - Migration index and process
+- **[MONITORING_MIGRATION.md](migrations/MONITORING_MIGRATION.md)** - Monitoring consolidation
+- **[SCHEMAS_MIGRATION.md](migrations/SCHEMAS_MIGRATION.md)** - BigQuery schema updates
 
 ## 🎯 Quick Navigation
 
@@ -66,14 +84,21 @@ docs/
 │   └── DATA_PLATFORM.md
 ├── deployment/          # Deployment guides and infrastructure
 │   └── DEPLOYMENT.md
+├── development/         # Developer guides and project structure
+│   └── PROJECT_STRUCTURE.md
 ├── operations/          # Operations and maintenance
 │   ├── OPERATIONS.md
 │   ├── SECURITY.md
 │   └── ROADMAP.md
-└── reference/           # Technical references and project history
-    ├── ENDPOINTS.md
-    ├── MEMORY.md (includes project history)
-    └── REDIS_LEADERBOARD_SETUP.md
+├── reference/           # Technical references and project history
+│   ├── ENDPOINTS.md
+│   ├── MEMORY.md
+│   ├── REDIS_LEADERBOARD_SETUP.md
+│   └── DEPRECATED_COMPONENTS.md
+└── migrations/          # Platform migrations
+    ├── README.md
+    ├── MONITORING_MIGRATION.md
+    └── SCHEMAS_MIGRATION.md
 ```
 
 ## 🔄 Keeping Documentation Updated

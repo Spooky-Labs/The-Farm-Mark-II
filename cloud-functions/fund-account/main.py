@@ -142,6 +142,9 @@ def fund_account(req: https_fn.Request) -> https_fn.Response:
             sandbox=sandbox
         )
 
+        # Initialize agent_id for error handling
+        agent_id = agent_ref.id if agent_ref else None
+
         # Update agent status
         agent_ref.update({
             "status": "funding_account",

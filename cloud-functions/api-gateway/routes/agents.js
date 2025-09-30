@@ -9,6 +9,7 @@ const { Firestore } = require('@google-cloud/firestore');
 const { CloudBuildClient } = require('@google-cloud/cloudbuild');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const admin = require('firebase-admin');
 const multipartFileUpload = require('../middleware/multipart');
 const { rateLimiters } = require('../middleware/auth');
 

@@ -14,7 +14,7 @@ Successfully migrated all BigQuery table schemas from standalone JSON files (`sc
 - `schemas/market_bars.json` - Market data schema
 - `schemas/news_articles.json` - News data schema
 - `schemas/fmel_unified_schema.sql` - SQL reference format
-- Tables created manually via `bq mk` in `scripts/deploy.sh`
+- Tables created manually via `bq mk` in `scripts/deployment/deploy.sh`
 - Schemas separate from infrastructure
 
 ### After
@@ -159,7 +159,7 @@ terraform apply
 
 ## Removed from Deployment Script
 
-The following lines were removed from `scripts/deploy.sh`:
+The following lines were removed from `scripts/deployment/deploy.sh`:
 
 ```bash
 # OLD: Manual table creation

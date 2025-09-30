@@ -276,7 +276,7 @@ kubectl get pods -n trading-agents -l app=paper-trader
 ```bash
 # Run system verification script
 cd /Users/nonplus/Documents/Spooky\ Labs/The\ Farm\ Mark\ II
-bash scripts/verify-system.sh
+bash scripts/utilities/verify-system.sh
 
 # Run Terraform validation
 bash tests/test_terraform_quick.sh

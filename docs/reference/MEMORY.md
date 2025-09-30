@@ -205,10 +205,10 @@ terraform apply  # Creates: GKE, Redis, BigQuery, Pub/Sub, Storage, 2 SAs
 
 # 3. Deploy services
 cd ..
-bash scripts/deploy-all.sh  # Cloud Functions, Containers, Kubernetes
+bash scripts/deployment/deploy.sh  # Cloud Functions, Containers, Kubernetes
 
 # 4. Verify deployment
-bash scripts/verify-system.sh
+bash scripts/utilities/verify-system.sh
 bash tests/test_complete_system.sh
 
 # 5. Update website
@@ -331,7 +331,7 @@ bash tests/test_complete_system.sh
 
 2. **Deploy Services**
    ```bash
-   bash scripts/deploy-all.sh  # Cloud Functions, Containers, K8s
+   bash scripts/deployment/deploy.sh  # Cloud Functions, Containers, K8s
    ```
 
 3. **Update Website**
@@ -410,16 +410,18 @@ Complete reorganization of codebase into professional, enterprise-ready structur
 
 **1. Documentation Organization**
 - Moved 15 .md files from root to organized `docs/` structure
-- Created 4 subdirectories: architecture/, deployment/, operations/, reference/
+- Created 6 subdirectories: architecture/, deployment/, development/, operations/, reference/, migrations/
 - Created `docs/README.md` as navigation index
-- Root now clean with only README.md + PROJECT_STRUCTURE.md
+- Root now clean with only README.md and .env.example
 
 **File Movements:**
 ```
 docs/architecture/  ← ARCHITECTURE.md, FMEL_COMPLETE.md, AGENT_RUNTIME.md, DATA_PLATFORM.md
 docs/deployment/    ← DEPLOYMENT.md (merged with DEPLOYMENT_GUIDE.md on 2025-09-30)
+docs/development/   ← PROJECT_STRUCTURE.md (moved from root)
 docs/operations/    ← OPERATIONS.md, SECURITY.md, ROADMAP.md
-docs/reference/     ← ENDPOINTS.md, MEMORY.md, REDIS_LEADERBOARD_SETUP.md
+docs/reference/     ← ENDPOINTS.md, MEMORY.md, REDIS_LEADERBOARD_SETUP.md, DEPRECATED_COMPONENTS.md
+docs/migrations/    ← MONITORING_MIGRATION.md, SCHEMAS_MIGRATION.md (moved from root)
 ```
 
 **2. Test Consolidation**
@@ -429,18 +431,31 @@ docs/reference/     ← ENDPOINTS.md, MEMORY.md, REDIS_LEADERBOARD_SETUP.md
 
 **3. Reference Updates**
 - Updated README.md with new documentation structure
-- Fixed scripts/verify-system.sh to check organized docs
-- Fixed scripts/deploy.sh references
+- Fixed scripts/utilities/verify-system.sh to check organized docs
+- Fixed scripts/deployment/deploy.sh references
 - Fixed tests/test_complete_system.sh paths
 
-**4. New Documentation**
-- PROJECT_STRUCTURE.md - Complete project guide
+**4. Scripts Reorganization (2025-09-30)**
+- Created subdirectories: scripts/deployment/, scripts/testing/, scripts/utilities/
+- Moved deploy.sh, post-deploy-k8s.sh, setup-environment.sh → deployment/
+- Moved test-deployment.sh, test-integration.sh, test-website-compatibility.js → testing/
+- Moved cleanup.sh, verify-system.sh → utilities/
+- Created scripts/README.md with comprehensive documentation
+
+**5. New Documentation**
+- PROJECT_STRUCTURE.md - Complete project guide (now in docs/development/)
 - docs/README.md - Documentation index
+- docs/migrations/README.md - Migration tracking index
+- docs/reference/DEPRECATED_COMPONENTS.md - Consolidated deprecation docs
+- scripts/README.md - Scripts documentation
 - Historical summaries consolidated into this file
 
 #### Results
-- **Root .md Files:** 15 → 2 (87% reduction)
-- **Documentation:** Organized in 4 logical categories
+- **Root .md Files:** 15 → 1 (93% reduction - only README.md remains)
+- **Documentation:** Organized in 6 logical categories (architecture, deployment, development, operations, reference, migrations)
+- **Scripts:** Organized in 3 logical categories (deployment, testing, utilities)
+- **Dead Code Removed:** Duplicate middleware, unused imports fixed
+- **Deprecated Docs:** Consolidated into single reference file
 - **Tests:** Consolidated in single directory
 - **Structure:** Enterprise-ready, professional
 - **Maintainability:** Significantly improved
@@ -464,7 +479,7 @@ docs/reference/     ← ENDPOINTS.md, MEMORY.md, REDIS_LEADERBOARD_SETUP.md
 
 **Codebase Review Fixes (2025-09-30)**
 - terraform/main.tf: Removed "Simplified" language (2 fixes)
-- scripts/verify-system.sh: Updated module checks (3 fixes)
+- scripts/utilities/verify-system.sh: Updated module checks (3 fixes)
 - tests/test_complete_system.sh: Updated module checks (4 fixes)
 - Verified no references to old module structure
 
