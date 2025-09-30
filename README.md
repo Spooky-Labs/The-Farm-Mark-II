@@ -18,101 +18,246 @@ Spooky Labs is a complete trading platform that enables AI agents to make autono
 - 🏆 **Performance Analytics** - Comprehensive backtesting and live performance metrics
 - 🔐 **Enterprise Security** - Private GKE cluster with Workload Identity
 
-### **Architecture Highlights:**
+### **Architecture Overview:**
 
+#### **High-Level System Architecture**
 ```mermaid
-flowchart TB
-    subgraph clients["🌐 Client Layer"]
-        direction LR
-        web["Web Dashboard<br/>React SPA"]
-        api_clients["API Clients<br/>Python/JS SDK"]
-        traders["Trading Agents<br/>Custom Strategies"]
-    end
+flowchart LR
+    clients["🌐 Clients<br/>━━━━━━━━<br/>Web Dashboard<br/>API Clients<br/>Trading Bots"]
 
-    subgraph gcp["☁️ Google Cloud Platform"]
-        subgraph compute["Compute Layer"]
-            direction TB
-            gateway["🚪 API Gateway<br/>Cloud Function Gen2<br/>━━━━━━━━━━<br/>POST /api/agents/submit<br/>POST /api/broker/create<br/>GET /api/leaderboard<br/>GET /api/fmel/decisions"]
+    gateway["🚪 API Gateway<br/>━━━━━━━━<br/>Cloud Function<br/>Authentication<br/>Rate Limiting"]
 
-            subgraph gke["⚙️ GKE Private Cluster"]
-                direction LR
-                ingester["📡 Unified Ingester<br/>Deployment 24/7<br/>━━━━━━━━━━<br/>• Alpaca WebSocket<br/>• Stock quotes<br/>• Crypto quotes<br/>• News feed"]
+    gke["⚙️ GKE Cluster<br/>━━━━━━━━<br/>Data Ingestion<br/>Paper Trading<br/>Strategy Execution"]
 
-                subgraph trading["🤖 Paper Trading"]
-                    direction TB
-                    trader1["Agent Pod 1<br/>StatefulSet<br/>━━━━━━━━━━<br/>• Backtrader engine<br/>• FMEL recorder<br/>• Strategy execution"]
-                    trader2["Agent Pod 2<br/>StatefulSet"]
-                    trader3["Agent Pod N<br/>StatefulSet"]
-                end
-            end
-        end
+    data["💾 Data Services<br/>━━━━━━━━<br/>BigQuery<br/>Redis<br/>Pub/Sub"]
 
-        subgraph data["💾 Data Layer"]
-            direction TB
-            redis[("⚡ Memorystore Redis<br/>━━━━━━━━━━<br/>• Leaderboard cache<br/>• Session management<br/>• Rate limiting<br/><10ms latency")]
+    external["🔌 External APIs<br/>━━━━━━━━<br/>Alpaca Markets<br/>Firebase Auth"]
 
-            pubsub["📬 Pub/Sub Topics<br/>━━━━━━━━━━<br/>• market-data-stocks<br/>• market-data-crypto<br/>• news-feed<br/>• trading-signals"]
+    clients -->|"HTTPS/REST"| gateway
+    gateway <-->|"Cache & Queue"| data
+    gateway -->|"Deploy agents"| gke
+    gke <-->|"Market data & orders"| external
+    gke <-->|"Store & Stream"| data
+    external -->|"WebSocket stream"| gke
 
-            bq[("📊 BigQuery<br/>━━━━━━━━━━<br/>• fmel_decisions table<br/>• market_data table<br/>• agent_performance table<br/>Partitioned by date<br/>Clustered by agent_id")]
-
-            firestore[("🔥 Firestore<br/>━━━━━━━━━━<br/>• User accounts<br/>• Agent metadata<br/>• Real-time positions")]
-
-            storage[("📦 Cloud Storage<br/>━━━━━━━━━━<br/>• Agent code bundles<br/>• Backtest results<br/>• Log archives")]
-        end
-
-        subgraph external["🔌 External Services"]
-            direction TB
-            alpaca["💼 Alpaca Markets<br/>━━━━━━━━━━<br/>• Paper trading API<br/>• Market data stream<br/>• Order execution"]
-
-            firebase["🔐 Firebase Auth<br/>━━━━━━━━━━<br/>• User authentication<br/>• JWT validation<br/>• API key mgmt"]
-        end
-    end
-
-    %% Client connections
-    web --> gateway
-    api_clients --> gateway
-    traders --> gateway
-
-    %% API Gateway connections
-    gateway <-->|"Cache R/W"| redis
-    gateway -->|"Store decisions"| bq
-    gateway <-->|"User auth"| firebase
-    gateway -->|"Trigger deployment"| trading
-
-    %% Ingester connections
-    alpaca -->|"WebSocket stream"| ingester
-    ingester -->|"Publish quotes"| pubsub
-    ingester -->|"Archive data"| bq
-
-    %% Pub/Sub fan-out
-    pubsub -->|"Market data"| trader1
-    pubsub -->|"Market data"| trader2
-    pubsub -->|"Market data"| trader3
-    pubsub -->|"Batch insert"| bq
-
-    %% Trading agent connections
-    trader1 <-->|"Orders & positions"| alpaca
-    trader2 <-->|"Orders & positions"| alpaca
-    trader3 <-->|"Orders & positions"| alpaca
-
-    trader1 -->|"FMEL records"| bq
-    trader2 -->|"FMEL records"| bq
-    trader3 -->|"FMEL records"| bq
-
-    trader1 -->|"Store strategy code"| storage
-    trader1 <-->|"Real-time state"| firestore
-
-    %% Styling
     classDef clientStyle fill:#4A90E2,stroke:#2E5C8A,stroke-width:3px,color:#fff
-    classDef computeStyle fill:#7B68EE,stroke:#4B3A9E,stroke-width:3px,color:#fff
+    classDef gatewayStyle fill:#7B68EE,stroke:#4B3A9E,stroke-width:3px,color:#fff
+    classDef computeStyle fill:#9ACD32,stroke:#6B8E23,stroke-width:3px,color:#fff
     classDef dataStyle fill:#FF8C42,stroke:#CC6F33,stroke-width:3px,color:#fff
     classDef externalStyle fill:#50C878,stroke:#2E8B57,stroke-width:3px,color:#fff
-    classDef gkeStyle fill:#9ACD32,stroke:#6B8E23,stroke-width:2px,color:#333
 
-    class web,api_clients,traders clientStyle
-    class gateway,ingester,trader1,trader2,trader3 computeStyle
-    class redis,pubsub,bq,firestore,storage dataStyle
-    class alpaca,firebase externalStyle
+    class clients clientStyle
+    class gateway gatewayStyle
+    class gke computeStyle
+    class data dataStyle
+    class external externalStyle
+```
+
+#### **API Gateway & Client Layer**
+```mermaid
+flowchart TB
+    subgraph clients["🌐 Client Applications"]
+        web["Web Dashboard<br/>━━━━━━━━<br/>React SPA<br/>User management<br/>Agent monitoring"]
+        sdk["API Clients<br/>━━━━━━━━<br/>Python SDK<br/>JavaScript SDK<br/>REST API"]
+        agents["Trading Agents<br/>━━━━━━━━<br/>Custom strategies<br/>Backtest results<br/>Code submission"]
+    end
+
+    gateway["🚪 API Gateway<br/>Cloud Function Gen2<br/>━━━━━━━━━━━━━━"]
+
+    subgraph endpoints["API Endpoints"]
+        agent_api["POST /api/agents/submit<br/>GET /api/agents/list<br/>DELETE /api/agents/:id"]
+        broker_api["POST /api/broker/create<br/>POST /api/broker/fund<br/>GET /api/broker/balance"]
+        leaderboard["GET /api/leaderboard<br/>GET /api/leaderboard/user/:id"]
+        fmel["GET /api/fmel/decisions<br/>GET /api/fmel/analytics"]
+    end
+
+    auth["🔐 Firebase Auth<br/>━━━━━━━━<br/>JWT validation<br/>User sessions"]
+
+    redis[("⚡ Redis Cache<br/>━━━━━━━━<br/>Leaderboard<br/>Rate limits<br/><10ms")]
+
+    web --> gateway
+    sdk --> gateway
+    agents --> gateway
+
+    gateway --> agent_api
+    gateway --> broker_api
+    gateway --> leaderboard
+    gateway --> fmel
+
+    gateway <-->|"Validate tokens"| auth
+    gateway <-->|"Cache reads"| redis
+
+    classDef clientStyle fill:#4A90E2,stroke:#2E5C8A,stroke-width:3px,color:#fff
+    classDef gatewayStyle fill:#7B68EE,stroke:#4B3A9E,stroke-width:3px,color:#fff
+    classDef endpointStyle fill:#9ACD32,stroke:#6B8E23,stroke-width:2px,color:#fff
+    classDef dataStyle fill:#FF8C42,stroke:#CC6F33,stroke-width:3px,color:#fff
+    classDef authStyle fill:#50C878,stroke:#2E8B57,stroke-width:3px,color:#fff
+
+    class web,sdk,agents clientStyle
+    class gateway gatewayStyle
+    class agent_api,broker_api,leaderboard,fmel endpointStyle
+    class redis dataStyle
+    class auth authStyle
+```
+
+#### **Data Ingestion Pipeline**
+```mermaid
+flowchart LR
+    alpaca["💼 Alpaca Markets<br/>━━━━━━━━━━<br/>WebSocket API"]
+
+    ingester["📡 Unified Ingester<br/>GKE Deployment<br/>━━━━━━━━━━<br/>24/7 streaming<br/>Multi-symbol support"]
+
+    subgraph pubsub["📬 Pub/Sub Topics"]
+        stocks["market-data-stocks<br/>Real-time quotes"]
+        crypto["market-data-crypto<br/>Digital assets"]
+        news["news-feed<br/>Market news"]
+    end
+
+    bq[("📊 BigQuery<br/>━━━━━━━━<br/>market_data table<br/>Partitioned by date")]
+
+    traders["🤖 Trading Agents<br/>━━━━━━━━<br/>Strategy execution<br/>Live subscriptions"]
+
+    alpaca -->|"WebSocket<br/>streaming"| ingester
+    ingester -->|"Publish"| stocks
+    ingester -->|"Publish"| crypto
+    ingester -->|"Publish"| news
+
+    stocks -->|"Subscribe"| traders
+    crypto -->|"Subscribe"| traders
+    news -->|"Subscribe"| traders
+
+    stocks -->|"Batch insert"| bq
+    crypto -->|"Batch insert"| bq
+    news -->|"Batch insert"| bq
+
+    classDef externalStyle fill:#50C878,stroke:#2E8B57,stroke-width:3px,color:#fff
+    classDef computeStyle fill:#7B68EE,stroke:#4B3A9E,stroke-width:3px,color:#fff
+    classDef pubsubStyle fill:#FF8C42,stroke:#CC6F33,stroke-width:3px,color:#fff
+    classDef dataStyle fill:#9ACD32,stroke:#6B8E23,stroke-width:3px,color:#fff
+
+    class alpaca externalStyle
+    class ingester computeStyle
+    class stocks,crypto,news pubsubStyle
+    class bq dataStyle
+    class traders computeStyle
+```
+
+#### **Paper Trading & FMEL Recording**
+```mermaid
+flowchart TB
+    gateway["🚪 API Gateway<br/>━━━━━━━━<br/>Agent submission"]
+
+    subgraph gke["⚙️ GKE Private Cluster"]
+        direction TB
+
+        subgraph agents["🤖 Paper Trading StatefulSets"]
+            trader1["Agent Pod 1<br/>━━━━━━━━<br/>Backtrader engine<br/>Strategy execution<br/>Position tracking"]
+            trader2["Agent Pod 2<br/>━━━━━━━━<br/>Different strategy"]
+            trader3["Agent Pod N<br/>━━━━━━━━<br/>Scalable"]
+        end
+
+        fmel["📝 FMEL Library<br/>━━━━━━━━<br/>Decision recorder<br/>Backtrader analyzer<br/>Explainability layer"]
+    end
+
+    pubsub["📬 Pub/Sub<br/>━━━━━━━━<br/>Market data feed"]
+
+    alpaca["💼 Alpaca API<br/>━━━━━━━━<br/>Paper trading<br/>Order execution"]
+
+    bq[("📊 BigQuery<br/>━━━━━━━━<br/>fmel_decisions<br/>agent_performance")]
+
+    storage[("📦 Cloud Storage<br/>━━━━━━━━<br/>Agent code<br/>Backtest results")]
+
+    firestore[("🔥 Firestore<br/>━━━━━━━━<br/>Real-time positions<br/>Agent metadata")]
+
+    gateway -->|"Deploy new agent"| agents
+    gateway -->|"Upload code"| storage
+
+    pubsub -->|"Stream quotes"| trader1
+    pubsub -->|"Stream quotes"| trader2
+    pubsub -->|"Stream quotes"| trader3
+
+    trader1 --> fmel
+    trader2 --> fmel
+    trader3 --> fmel
+
+    trader1 <-->|"Place orders<br/>Get positions"| alpaca
+    trader2 <-->|"Place orders<br/>Get positions"| alpaca
+    trader3 <-->|"Place orders<br/>Get positions"| alpaca
+
+    fmel -->|"Record decisions<br/>Market context<br/>Performance"| bq
+
+    trader1 <-->|"Update state<br/>Real-time sync"| firestore
+
+    classDef gatewayStyle fill:#4A90E2,stroke:#2E5C8A,stroke-width:3px,color:#fff
+    classDef computeStyle fill:#7B68EE,stroke:#4B3A9E,stroke-width:3px,color:#fff
+    classDef fmelStyle fill:#9ACD32,stroke:#6B8E23,stroke-width:3px,color:#fff
+    classDef dataStyle fill:#FF8C42,stroke:#CC6F33,stroke-width:3px,color:#fff
+    classDef externalStyle fill:#50C878,stroke:#2E8B57,stroke-width:3px,color:#fff
+
+    class gateway gatewayStyle
+    class trader1,trader2,trader3 computeStyle
+    class fmel fmelStyle
+    class pubsub,bq,storage,firestore dataStyle
+    class alpaca externalStyle
+```
+
+#### **Data Storage & Analytics**
+```mermaid
+flowchart TB
+    subgraph sources["Data Sources"]
+        ingester["📡 Data Ingester<br/>Market data stream"]
+        traders["🤖 Trading Agents<br/>FMEL decisions"]
+        gateway["🚪 API Gateway<br/>User actions"]
+    end
+
+    subgraph storage["💾 GCP Data Services"]
+        bq[("📊 BigQuery<br/>━━━━━━━━━━")]
+
+        subgraph tables["BigQuery Tables"]
+            market["market_data<br/>• Partitioned by date<br/>• Clustered by symbol<br/>• Real-time quotes"]
+            fmel["fmel_decisions<br/>• Partitioned by timestamp<br/>• Clustered by agent_id<br/>• Decision records"]
+            perf["agent_performance<br/>• Daily aggregations<br/>• Returns & metrics<br/>• Leaderboard source"]
+        end
+
+        redis[("⚡ Memorystore Redis<br/>━━━━━━━━━━<br/>• Sorted sets leaderboard<br/>• Session cache<br/>• Rate limit counters<br/>• Sub-10ms latency")]
+
+        firestore[("🔥 Firestore<br/>━━━━━━━━━━<br/>• User accounts<br/>• Agent metadata<br/>• Real-time positions<br/>• Live updates")]
+
+        gcs[("📦 Cloud Storage<br/>━━━━━━━━━━<br/>• Agent code bundles<br/>• Backtest archives<br/>• Log files<br/>• Lifecycle policies")]
+    end
+
+    subgraph consumers["Data Consumers"]
+        analytics["📈 Analytics<br/>Backtesting & reports"]
+        leaderboard["🏆 Leaderboard<br/>Rankings & stats"]
+        monitoring["📊 Monitoring<br/>Alerts & dashboards"]
+    end
+
+    ingester -->|"Stream insert"| market
+    traders -->|"Batch insert"| fmel
+    traders -->|"Batch insert"| perf
+    gateway -->|"Write-through"| redis
+    traders -->|"Real-time sync"| firestore
+    gateway -->|"Upload objects"| gcs
+
+    bq --> tables
+
+    market --> analytics
+    fmel --> analytics
+    perf --> leaderboard
+
+    redis --> leaderboard
+
+    bq --> monitoring
+
+    classDef sourceStyle fill:#4A90E2,stroke:#2E5C8A,stroke-width:3px,color:#fff
+    classDef dataStyle fill:#FF8C42,stroke:#CC6F33,stroke-width:3px,color:#fff
+    classDef tableStyle fill:#9ACD32,stroke:#6B8E23,stroke-width:2px,color:#fff
+    classDef consumerStyle fill:#7B68EE,stroke:#4B3A9E,stroke-width:3px,color:#fff
+
+    class ingester,traders,gateway sourceStyle
+    class bq,redis,firestore,gcs dataStyle
+    class market,fmel,perf tableStyle
+    class analytics,leaderboard,monitoring consumerStyle
 ```
 
 ## 🎯 **Quick Start**
