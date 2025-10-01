@@ -198,12 +198,12 @@ deploy_data_ingesters() {
 
 # Deploy Cloud Functions
 deploy_cloud_functions() {
-    print_status "Deploying unified API Gateway Cloud Function..."
+    print_status "Deploying unified Main API Cloud Function..."
 
-    # Deploy API Gateway Cloud Function (consolidated)
-    cd cloud-functions/api-gateway
+    # Deploy Main API Cloud Function (consolidated)
+    cd cloud-functions/main-api
 
-    gcloud functions deploy api-gateway \
+    gcloud functions deploy main-api \
         --gen2 \
         --runtime nodejs22 \
         --trigger-http \
@@ -216,7 +216,7 @@ deploy_cloud_functions() {
 
     cd ../..
 
-    print_success "API Gateway deployed (all broker operations consolidated)"
+    print_success "Main API deployed (all broker operations consolidated)"
 }
 
 # Build container images
@@ -363,8 +363,8 @@ print_deployment_summary() {
     echo ""
 
     echo "🔗 Service Endpoints:"
-    echo "  • API Gateway (Unified Cloud Function):"
-    echo "    - Base URL: https://$REGION-$PROJECT_ID.cloudfunctions.net/api-gateway"
+    echo "  • Main API (Unified Cloud Function):"
+    echo "    - Base URL: https://$REGION-$PROJECT_ID.cloudfunctions.net/main-api"
     echo ""
     echo "  • API Routes:"
     echo "    - Agent Operations: POST /api/agents/*"

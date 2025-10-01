@@ -21,7 +21,7 @@ date
 
 # 1. Check API Gateway
 echo "1. Checking API Gateway..."
-curl -s https://REGION-PROJECT.cloudfunctions.net/api-gateway/health | jq '.'
+curl -s https://REGION-PROJECT.cloudfunctions.net/main-api/health | jq '.'
 
 # 2. Check Data Ingester
 echo "2. Checking Data Ingester..."
@@ -83,19 +83,19 @@ DEL leaderboard:*  # Clear only leaderboard data
 ### 3. Update API Gateway
 
 ```bash
-cd cloud-functions/api-gateway
+cd cloud-functions/main-api
 
 # Test locally first
 npm test
 
 # Deploy new version
-gcloud functions deploy api-gateway \
+gcloud functions deploy main-api \
   --source=. \
   --region=us-central1 \
   --entry-point=app
 
 # Verify deployment
-curl https://REGION-PROJECT.cloudfunctions.net/api-gateway/health
+curl https://REGION-PROJECT.cloudfunctions.net/main-api/health
 ```
 
 ### 4. Scale Paper Trading Pods
@@ -164,11 +164,11 @@ echo "Checking system status..."
 curl -f https://API_URL/health || echo "API Gateway is DOWN"
 
 # 2. Check recent deployments
-gcloud functions describe api-gateway --region=us-central1 \
+gcloud functions describe main-api --region=us-central1 \
   --format="value(updateTime)"
 
 # 3. Rollback if needed
-gcloud functions deploy api-gateway \
+gcloud functions deploy main-api \
   --source=gs://backup/last-known-good.zip \
   --region=us-central1
 
@@ -189,7 +189,7 @@ gcloud monitoring dashboards list
 
 # Scale resources
 kubectl scale deployment unified-market-data-ingester --replicas=5 -n trading-agents
-gcloud functions deploy api-gateway --max-instances=200 --region=us-central1
+gcloud functions deploy main-api --max-instances=200 --region=us-central1
 
 # Clear caches if needed
 # (Redis cache clear commands as shown above)
@@ -229,7 +229,7 @@ bq query --use_legacy_sql=false \
   "DELETE FROM market_data.bars WHERE DATE(timestamp) < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)"
 
 # 3. Update dependencies
-cd cloud-functions/api-gateway
+cd cloud-functions/main-api
 npm update
 npm audit fix
 
@@ -375,7 +375,7 @@ gcloud dns record-sets transaction add \
 gcloud dns record-sets transaction execute --zone=spookylabs
 
 # Deploy to backup region
-gcloud functions deploy api-gateway \
+gcloud functions deploy main-api \
   --region=$BACKUP_REGION \
   --source=.
 ```
@@ -635,5 +635,5 @@ gcloud monitoring metric-descriptors list \
 - [Kubernetes Dashboard](kubectl proxy & http://localhost:8001/ui)
 
 ---
-Last Updated: 2025-09-29
+Last Updated: 2025-09-30
 Version: 1.0

@@ -34,7 +34,7 @@ bash scripts/deployment/deploy.sh --kubernetes-only
 ```
 
 **What it does:**
-- Deploys Cloud Functions (api-gateway, create-account, fund-account)
+- Deploys Cloud Functions (main-api, create-account, fund-account)
 - Deploys Kubernetes resources (data ingesters, paper trading)
 - Sets up environment variables and secrets
 - Validates deployment
@@ -191,7 +191,7 @@ gcloud container clusters get-credentials farm-cluster --region us-central1
 
 - [Deployment Guide](../docs/deployment/DEPLOYMENT.md)
 - [Operations Guide](../docs/operations/OPERATIONS.md)
-- [Troubleshooting](../docs/operations/TROUBLESHOOTING.md) *(coming soon)*
+- [Troubleshooting](../docs/operations/TROUBLESHOOTING.md)
 
 ---
 

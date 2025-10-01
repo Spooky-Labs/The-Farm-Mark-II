@@ -64,18 +64,18 @@ ERROR: (gcloud.functions.deploy) Operation timed out
 **Solutions:**
 ```bash
 # Check function logs
-gcloud functions logs read api-gateway --limit=50
+gcloud functions logs read main-api --limit=50
 
 # Try deploying with more memory
-gcloud functions deploy api-gateway \
+gcloud functions deploy main-api \
   --memory=1024MB \
   --timeout=540s
 
 # Clean node_modules and retry
-cd cloud-functions/api-gateway
+cd cloud-functions/main-api
 rm -rf node_modules
 npm install
-gcloud functions deploy api-gateway ...
+gcloud functions deploy main-api ...
 ```
 
 #### Issue: Kubernetes Pod Won't Start
@@ -249,13 +249,13 @@ HTTP 503 Service Unavailable
 **Diagnosis:**
 ```bash
 # Check function logs
-gcloud functions logs read api-gateway \
+gcloud functions logs read main-api \
   --region=us-central1 \
   --limit=100 \
   --format="value(textPayload)"
 
 # Check function health
-curl https://REGION-PROJECT.cloudfunctions.net/api-gateway/health
+curl https://REGION-PROJECT.cloudfunctions.net/main-api/health
 
 # Check Redis connection
 gcloud redis instances describe farm-redis --region=us-central1
@@ -272,7 +272,7 @@ gcloud redis instances describe farm-redis --region=us-central1
 gcloud compute networks vpc-access connectors list --region=us-central1
 
 # Restart function to reset connections
-gcloud functions deploy api-gateway --region=us-central1 --no-source
+gcloud functions deploy main-api --region=us-central1 --no-source
 ```
 
 **Problem: Firebase Auth Failing**
@@ -284,7 +284,7 @@ firebase projects:list
 gcloud iam service-accounts list
 
 # Test authentication
-curl https://REGION-PROJECT.cloudfunctions.net/api-gateway/api/agents/list \
+curl https://REGION-PROJECT.cloudfunctions.net/main-api/api/agents/list \
   -H "Authorization: Bearer $FIREBASE_TOKEN" \
   -v
 ```
@@ -301,7 +301,7 @@ curl https://REGION-PROJECT.cloudfunctions.net/api-gateway/api/agents/list \
 **Diagnosis:**
 ```bash
 # Check function metrics
-gcloud functions describe api-gateway \
+gcloud functions describe main-api \
   --region=us-central1 \
   --format="value(status)"
 
@@ -319,7 +319,7 @@ redis-cli -h REDIS_HOST -p REDIS_PORT ping
 **Problem: Cold Starts**
 ```bash
 # Increase min instances
-gcloud functions deploy api-gateway \
+gcloud functions deploy main-api \
   --min-instances=1 \
   --region=us-central1
 
@@ -363,7 +363,7 @@ gcloud pubsub subscriptions describe agent-market-data-sub \
   --format="value(messageRetentionDuration, expirationPolicy)"
 
 # Check function invocations
-gcloud functions describe api-gateway \
+gcloud functions describe main-api \
   --region=us-central1 \
   --format="value(httpsTrigger.url)"
 ```
@@ -403,7 +403,7 @@ kubectl edit deployment unified-ingester
 ```sql
 -- Find errors in last hour
 resource.type="cloud_function"
-resource.labels.function_name="api-gateway"
+resource.labels.function_name="main-api"
 severity>=ERROR
 timestamp>="2025-09-30T10:00:00Z"
 

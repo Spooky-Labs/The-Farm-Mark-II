@@ -88,6 +88,6 @@ app.use('*', (req, res) => {
 app.use(errorHandler);
 
 // Register the Express app with Cloud Functions
-functions.http('api-gateway', app);
+functions.http('main-api', app);
 
 module.exports = app;

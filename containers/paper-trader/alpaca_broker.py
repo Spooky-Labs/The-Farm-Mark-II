@@ -183,8 +183,9 @@ class AlpacaBroker(bt.brokers.BackBroker):
                 if order.ref in self.pending_orders:
                     del self.pending_orders[order.ref]
 
-                # Mark as canceled
-                self.cancel(order)
+                # Mark as canceled - call parent class cancel method
+                # (not self.cancel which would recurse infinitely)
+                super().cancel(order)
                 print(f"Canceled order: {alpaca_order.id}")
 
             return order

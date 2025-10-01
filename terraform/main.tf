@@ -83,8 +83,8 @@ resource "google_service_account" "gke_workload" {
 }
 
 resource "google_service_account" "cloud_function" {
-  account_id   = "api-gateway-sa"
-  display_name = "API Gateway Cloud Function Service Account"
+  account_id   = "main-api-sa"
+  display_name = "Main API Cloud Function Service Account"
 }
 
 # GKE workload permissions

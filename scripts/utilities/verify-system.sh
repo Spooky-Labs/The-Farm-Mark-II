@@ -42,7 +42,7 @@ check_component() {
 
 echo -e "${YELLOW}1. Directory Structure${NC}"
 echo "------------------------"
-check_component "API Gateway" "[ -d 'cloud-functions/api-gateway' ]"
+check_component "Main API" "[ -d 'cloud-functions/main-api' ]"
 check_component "Data Ingester" "[ -d 'data-ingesters/unified-ingester' ]"
 check_component "Paper Trader" "[ -d 'containers/paper-trader' ]"
 check_component "FMEL Library" "[ -d 'shared/fmel-library' ]"
@@ -51,16 +51,16 @@ check_component "Kubernetes Manifests" "[ -d 'kubernetes' ]"
 check_component "Scripts" "[ -d 'scripts' ]"
 check_component "Schemas" "[ -d 'schemas' ]"
 
-echo -e "\n${YELLOW}2. API Gateway Configuration${NC}"
+echo -e "\n${YELLOW}2. Main API Configuration${NC}"
 echo "------------------------"
-check_component "Main index.js" "[ -f 'cloud-functions/api-gateway/index.js' ]"
-check_component "Package.json" "[ -f 'cloud-functions/api-gateway/package.json' ]"
-check_component "Legacy Routes" "[ -f 'cloud-functions/api-gateway/routes/legacy-compat.js' ]"
-check_component "Agent Routes" "[ -f 'cloud-functions/api-gateway/routes/agents.js' ]"
-check_component "Broker Routes" "[ -f 'cloud-functions/api-gateway/routes/broker.js' ]"
-check_component "Paper Trading Routes" "[ -f 'cloud-functions/api-gateway/routes/paper-trading.js' ]"
-check_component "Leaderboard Routes" "[ -f 'cloud-functions/api-gateway/routes/leaderboard-redis.js' ]"
-check_component "Auth Middleware" "[ -f 'cloud-functions/api-gateway/middleware/auth.js' ]"
+check_component "Main index.js" "[ -f 'cloud-functions/main-api/index.js' ]"
+check_component "Package.json" "[ -f 'cloud-functions/main-api/package.json' ]"
+check_component "Legacy Routes" "[ -f 'cloud-functions/main-api/routes/legacy-compat.js' ]"
+check_component "Agent Routes" "[ -f 'cloud-functions/main-api/routes/agents.js' ]"
+check_component "Broker Routes" "[ -f 'cloud-functions/main-api/routes/broker.js' ]"
+check_component "Paper Trading Routes" "[ -f 'cloud-functions/main-api/routes/paper-trading.js' ]"
+check_component "Leaderboard Routes" "[ -f 'cloud-functions/main-api/routes/leaderboard-redis.js' ]"
+check_component "Auth Middleware" "[ -f 'cloud-functions/main-api/middleware/auth.js' ]"
 
 echo -e "\n${YELLOW}3. Data Pipeline Components${NC}"
 echo "------------------------"
@@ -160,7 +160,7 @@ TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
 # Verify route files exist
 echo -e "\n${YELLOW}11. Additional Checks${NC}"
 echo "------------------------"
-check_component "Test routes file" "[ -f 'cloud-functions/api-gateway/test-routes.js' ]"
+check_component "Test routes file" "[ -f 'cloud-functions/main-api/test-routes.js' ]"
 
 # Summary
 echo -e "\n${BLUE}========================================${NC}"

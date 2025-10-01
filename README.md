@@ -578,7 +578,7 @@ bash scripts/testing/test-deployment.sh
 
 ### **4. Submit Your First Agent**
 ```bash
-curl -X POST https://REGION-PROJECT.cloudfunctions.net/api-gateway/api/agents/submit \
+curl -X POST https://REGION-PROJECT.cloudfunctions.net/main-api/api/agents/submit \
   -H "Authorization: Bearer YOUR_FIREBASE_TOKEN" \
   -F "agentName=MyFirstAgent" \
   -F "file=@my_strategy.py"
@@ -589,7 +589,7 @@ curl -X POST https://REGION-PROJECT.cloudfunctions.net/api-gateway/api/agents/su
 ```
 The-Farm-Mark-II/
 ├── cloud-functions/
-│   └── api-gateway/         # Unified API Gateway (consolidates all routes)
+│   └── main-api/            # Unified Main API (consolidates all routes)
 ├── data-ingesters/
 │   └── unified-ingester/    # Single ingester (stocks + crypto + news)
 ├── containers/
@@ -613,7 +613,7 @@ The-Farm-Mark-II/
 
 ## 🔧 **Key Components**
 
-### **🌐 API Gateway (`cloud-functions/api-gateway/`)**
+### **🌐 Main API (`cloud-functions/main-api/`)**
 - **Purpose:** Single unified Cloud Function for all API operations
 - **Routes:**
   - `/api/agents/*` - Agent submission and management

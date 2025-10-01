@@ -41,7 +41,7 @@ gcloud redis instances describe redis-instance --region=us-central1
 ### 2. Enable Redis Route in API Gateway
 
 ```javascript
-// cloud-functions/api-gateway/index.js
+// cloud-functions/main-api/index.js
 const leaderboardRoutes = require('./routes/leaderboard-redis');
 app.use('/api/leaderboard', leaderboardRoutes);
 ```
@@ -50,17 +50,17 @@ app.use('/api/leaderboard', leaderboardRoutes);
 
 ```bash
 # Get leaderboard
-curl "https://REGION-PROJECT.cloudfunctions.net/api-gateway/api/leaderboard?mode=backtest&metric=total_pnl"
+curl "https://REGION-PROJECT.cloudfunctions.net/main-api/api/leaderboard?mode=backtest&metric=total_pnl"
 
 # Get agent rank
-curl "https://REGION-PROJECT.cloudfunctions.net/api-gateway/api/leaderboard/agent/AGENT_ID?mode=backtest"
+curl "https://REGION-PROJECT.cloudfunctions.net/main-api/api/leaderboard/agent/AGENT_ID?mode=backtest"
 ```
 
 ## Implementation Details
 
 ### LeaderboardCache Class
 
-Located in `cloud-functions/api-gateway/lib/redis.js` and `cloud-functions/api-gateway/lib/bigquery.js`
+Located in `cloud-functions/main-api/lib/redis.js` and `cloud-functions/main-api/lib/bigquery.js`
 
 **How it works:**
 1. Check Redis cache (5min TTL)
@@ -83,13 +83,13 @@ Located in `cloud-functions/api-gateway/lib/redis.js` and `cloud-functions/api-g
 # Already configured in Terraform if needed
 gcloud scheduler jobs create http refresh-leaderboards \
   --schedule="*/5 * * * *" \
-  --uri="https://REGION-PROJECT.cloudfunctions.net/api-gateway/api/leaderboard/refresh" \
+  --uri="https://REGION-PROJECT.cloudfunctions.net/main-api/api/leaderboard/refresh" \
   --http-method=POST
 ```
 
 **Manual refresh:**
 ```bash
-curl -X POST "https://REGION-PROJECT.cloudfunctions.net/api-gateway/api/leaderboard/refresh"
+curl -X POST "https://REGION-PROJECT.cloudfunctions.net/main-api/api/leaderboard/refresh"
 ```
 
 ## API Endpoints
@@ -215,7 +215,7 @@ gcloud compute networks vpc-access connectors describe farm-connector \
   --region=us-central1
 
 # Verify Cloud Function has VPC connector
-gcloud functions describe api-gateway \
+gcloud functions describe main-api \
   --region=us-central1 \
   --format="value(vpcConnector)"
 ```
@@ -226,7 +226,7 @@ gcloud functions describe api-gateway \
 **Solution:**
 ```bash
 # Force refresh
-curl -X POST "https://REGION-PROJECT.cloudfunctions.net/api-gateway/api/leaderboard/refresh"
+curl -X POST "https://REGION-PROJECT.cloudfunctions.net/main-api/api/leaderboard/refresh"
 
 # Or flush Redis (nuclear option)
 redis-cli -h REDIS_HOST FLUSHDB

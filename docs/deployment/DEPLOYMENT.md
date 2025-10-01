@@ -197,13 +197,13 @@ kubectl logs -n trading-agents -l app=unified-market-data-ingester --tail=50
 **Purpose:** Single API Gateway for all operations (agents, trading, leaderboards, FMEL)
 
 ```bash
-cd cloud-functions/api-gateway
+cd cloud-functions/main-api
 
 # Install dependencies
 npm install
 
 # Deploy to Cloud Functions (with VPC connector for Redis access)
-gcloud functions deploy api-gateway \
+gcloud functions deploy main-api \
   --gen2 \
   --runtime=nodejs20 \
   --region=${REGION} \
@@ -219,7 +219,7 @@ gcloud functions deploy api-gateway \
   --max-instances=100
 
 # Get the function URL
-export API_GATEWAY_URL=$(gcloud functions describe api-gateway --region=${REGION} --format='value(serviceConfig.uri)')
+export API_GATEWAY_URL=$(gcloud functions describe main-api --region=${REGION} --format='value(serviceConfig.uri)')
 echo "API Gateway URL: ${API_GATEWAY_URL}"
 ```
 
@@ -307,7 +307,7 @@ Update your website's API endpoint to point to the new API Gateway:
 
 ```javascript
 // In your website configuration
-const API_BASE_URL = 'https://REGION-PROJECT.cloudfunctions.net/api-gateway';
+const API_BASE_URL = 'https://REGION-PROJECT.cloudfunctions.net/main-api';
 
 // The API Gateway maintains backward compatibility with legacy endpoints
 // Both formats work:
@@ -524,7 +524,7 @@ gcloud redis instances list --region=${REGION}
 gcloud compute networks vpc-access connectors list --region=${REGION}
 
 # Verify Redis host/port in Cloud Function env vars
-gcloud functions describe api-gateway --region=${REGION} \
+gcloud functions describe main-api --region=${REGION} \
   --format="value(serviceConfig.environmentVariables)"
 ```
 
@@ -583,10 +583,10 @@ terraform destroy -auto-approve
 
 ```bash
 # List previous versions
-gcloud functions describe api-gateway --region=${REGION}
+gcloud functions describe main-api --region=${REGION}
 
 # Deploy previous version
-gcloud functions deploy api-gateway \
+gcloud functions deploy main-api \
   --source=gs://gcf-sources-${GOOGLE_CLOUD_PROJECT}/previous-version.zip \
   --region=${REGION}
 ```
@@ -640,7 +640,7 @@ kubectl scale statefulset paper-trader \
 **API Gateway:**
 ```bash
 # Increase max instances
-gcloud functions deploy api-gateway \
+gcloud functions deploy main-api \
   --max-instances=200 \
   --region=${REGION}
 ```

@@ -23,6 +23,7 @@ Operational guides for running and maintaining the platform.
 
 - **[OPERATIONS.md](operations/OPERATIONS.md)** - Complete operational runbook
 - **[SECURITY.md](operations/SECURITY.md)** - Security implementation and best practices
+- **[TROUBLESHOOTING.md](operations/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[ROADMAP.md](operations/ROADMAP.md)** - Development roadmap and future plans
 
 ## 💻 Development Documentation
@@ -30,9 +31,9 @@ Operational guides for running and maintaining the platform.
 Developer guides and project structure.
 
 - **[PROJECT_STRUCTURE.md](development/PROJECT_STRUCTURE.md)** - Repository organization
+- **[TESTING.md](development/TESTING.md)** - Testing strategy and test suite documentation
 - **SETUP.md** - Development environment setup *(coming soon)*
 - **CONTRIBUTING.md** - Contribution guidelines *(coming soon)*
-- **TESTING.md** - Testing documentation *(coming soon)*
 
 ## 📖 Reference Documentation
 
@@ -85,10 +86,12 @@ docs/
 ├── deployment/          # Deployment guides and infrastructure
 │   └── DEPLOYMENT.md
 ├── development/         # Developer guides and project structure
-│   └── PROJECT_STRUCTURE.md
+│   ├── PROJECT_STRUCTURE.md
+│   └── TESTING.md
 ├── operations/          # Operations and maintenance
 │   ├── OPERATIONS.md
 │   ├── SECURITY.md
+│   ├── TROUBLESHOOTING.md
 │   └── ROADMAP.md
 ├── reference/           # Technical references and project history
 │   ├── ENDPOINTS.md

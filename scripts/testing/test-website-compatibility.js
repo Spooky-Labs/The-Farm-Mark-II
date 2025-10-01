@@ -10,7 +10,7 @@ const fs = require('fs');
 const FormData = require('form-data');
 
 // Configuration
-const API_BASE_URL = process.env.API_URL || 'https://us-central1-YOUR-PROJECT.cloudfunctions.net/api-gateway';
+const API_BASE_URL = process.env.API_URL || 'https://us-central1-YOUR-PROJECT.cloudfunctions.net/main-api';
 const TEST_TOKEN = process.env.TEST_TOKEN || 'test-firebase-token';
 
 // Colors for output
@@ -313,7 +313,7 @@ async function runTests() {
 // Check if API URL is set
 if (API_BASE_URL.includes('YOUR-PROJECT')) {
     console.log(`${colors.red}ERROR: Please set the API_URL environment variable${colors.reset}`);
-    console.log('Example: API_URL=https://us-central1-project.cloudfunctions.net/api-gateway node test-website-compatibility.js');
+    console.log('Example: API_URL=https://us-central1-project.cloudfunctions.net/main-api node test-website-compatibility.js');
     process.exit(1);
 }
 

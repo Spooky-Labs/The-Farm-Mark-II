@@ -8,7 +8,7 @@ This document tracks deprecated components across the entire platform.
 
 ### ✅ Active Cloud Functions
 
-#### 1. `api-gateway/` (Node.js)
+#### 1. `main-api/` (Node.js)
 **Primary unified API endpoint for all operations**
 
 Routes:

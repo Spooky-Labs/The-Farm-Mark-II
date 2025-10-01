@@ -310,15 +310,29 @@ router.get('/search', rateLimiters.fmelSearch, async (req, res, next) => {
             });
         }
 
-        // Build WHERE conditions
+        // Build WHERE conditions using parameterized queries to prevent SQL injection
+        // WHY: Using query parameters prevents SQL injection attacks and allows BigQuery
+        // to optimize query execution plans
         const whereConditions = [
-            `user_id = '${userId}'`,
+            `user_id = @userId`,
             `JSON_EXTRACT_SCALAR(decision_data, '$.reasoning') IS NOT NULL`,
-            `LOWER(JSON_EXTRACT_SCALAR(decision_data, '$.reasoning')) LIKE LOWER('%${q.replace(/'/g, "\\'")}%')`
+            `LOWER(JSON_EXTRACT_SCALAR(decision_data, '$.reasoning')) LIKE LOWER(@searchQuery)`
         ];
 
-        if (agentId) whereConditions.push(`agent_id = '${agentId}'`);
-        if (mode) whereConditions.push(`mode = '${mode.toUpperCase()}'`);
+        const queryParams = {
+            userId: userId,
+            searchQuery: `%${q}%`,
+            limit: parseInt(limit)
+        };
+
+        if (agentId) {
+            whereConditions.push(`agent_id = @agentId`);
+            queryParams.agentId = agentId;
+        }
+        if (mode) {
+            whereConditions.push(`mode = @mode`);
+            queryParams.mode = mode.toUpperCase();
+        }
 
         const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
 
@@ -337,10 +351,16 @@ router.get('/search', rateLimiters.fmelSearch, async (req, res, next) => {
         FROM \`${PROJECT_ID}.${BQ_DATASET}.decision_analysis\`
         ${whereClause}
         ORDER BY timestamp DESC
-        LIMIT ${parseInt(limit)}
+        LIMIT @limit
         `;
 
-        const [rows] = await bigquery.query(query);
+        // Execute query with parameters - BigQuery client handles escaping
+        const options = {
+            query: query,
+            params: queryParams
+        };
+
+        const [rows] = await bigquery.query(options);
 
         const results = rows.map(row => ({
             decisionId: row.decision_id,
