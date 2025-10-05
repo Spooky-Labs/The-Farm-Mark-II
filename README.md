@@ -84,14 +84,18 @@ graph TB
     AS --> FS2
     FS --> BQ
 
-    style GW fill:#e1f5fe
-    style AS fill:#f3e5f5
-    style BS fill:#f3e5f5
-    style PS fill:#f3e5f5
-    style LS fill:#f3e5f5
-    style FS fill:#f3e5f5
-    style REDIS fill:#fff3e0
-    style BQ fill:#f1f8e9
+    style GW fill:#e1f5fe,stroke:#1976d2,stroke-width:2px,color:#000
+    style AS fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    style BS fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    style PS fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    style LS fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    style FS fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    style REDIS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    style BQ fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#000
+    style PT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style DI fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style ALPACA fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    style CF fill:#fce4ec,stroke:#ad1457,stroke-width:2px,color:#000
 ```
 
 ### Data Flow
