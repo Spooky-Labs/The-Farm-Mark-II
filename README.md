@@ -27,40 +27,41 @@ The Farm Mark II is a microservices-based trading platform that enables users to
 graph TB
     subgraph "Client Layer"
         WEB[Web App]
-        SDK[API SDKs]
+        API[API Clients]
     end
 
-    subgraph "API Layer"
+    subgraph "API Gateway"
         GW[API Gateway<br/>OpenAPI 3.0]
     end
 
-    subgraph "Microservices - Cloud Run"
-        AS[agents-service]
-        BS[backtest-service]
-        PS[paper-trading-service]
-        LS[leaderboard-service]
-        FS[fmel-service]
+    subgraph "Cloud Run Services"
+        AS[agents-service<br/>Agent CRUD]
+        BS[backtest-service<br/>Cloud Build orchestration]
+        PS[paper-trading-service<br/>K8s pod launcher]
+        LS[leaderboard-service<br/>Redis caching]
+        FS[fmel-service<br/>Analytics]
     end
 
-    subgraph "Runtime - Kubernetes"
-        PT[Paper Trading Pods]
-        DI[Data Ingestion]
+    subgraph "Kubernetes (GKE)"
+        PT[paper-trader<br/>Trading pods]
+        ING[Unified Ingester<br/>WebSocket data]
     end
 
-    subgraph "Data Layer"
-        BQ[BigQuery]
-        REDIS[Redis Cache]
-        FS2[Firestore]
-        PS2[Pub/Sub]
+    subgraph "Data Storage"
+        BQ[BigQuery<br/>Analytics]
+        REDIS[Redis<br/>Cache]
+        FIRE[Firestore<br/>State]
+        PUB[Pub/Sub<br/>Events]
+        GCS[Cloud Storage<br/>Agent code]
     end
 
-    subgraph "External"
-        ALPACA[Alpaca Markets]
-        CF[External Cloud Functions<br/>account ops]
+    subgraph "External Services"
+        ALPACA[Alpaca Markets<br/>Trading API]
+        CF[Cloud Functions<br/>create-account<br/>fund-account]
     end
 
     WEB --> GW
-    SDK --> GW
+    API --> GW
 
     GW --> AS
     GW --> BS
@@ -68,21 +69,24 @@ graph TB
     GW --> LS
     GW --> FS
 
-    PS --> PT
-    BS --> BQ
+    AS --> GCS
+    AS --> FIRE
 
-    CF --> PT
+    BS --> |Cloud Build| BQ
 
-    ALPACA --> DI
-    DI --> PS2
-    PS2 --> PT
+    PS --> |Deploy| PT
+    CF --> |Account setup| PT
 
-    PT --> BQ
     LS --> REDIS
-    REDIS -.-> BQ
+    REDIS -.-> |Fallback| BQ
 
-    AS --> FS2
     FS --> BQ
+
+    ALPACA --> |WebSocket| ING
+    ING --> PUB
+    PUB --> PT
+    PT --> |Orders| ALPACA
+    PT --> |FMEL logs| BQ
 
     style GW fill:#e1f5fe,stroke:#1976d2,stroke-width:2px,color:#000
     style AS fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
@@ -92,36 +96,59 @@ graph TB
     style FS fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
     style REDIS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
     style BQ fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#000
+    style FIRE fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#000
+    style PUB fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#000
+    style GCS fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#000
     style PT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style DI fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style ING fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
     style ALPACA fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
     style CF fill:#fce4ec,stroke:#ad1457,stroke-width:2px,color:#000
 ```
 
-### Data Flow
+### Request Flow
 
 ```mermaid
 sequenceDiagram
-    participant Client
+    participant User
     participant Gateway as API Gateway
     participant Service as Cloud Run Service
+    participant External as External CF
     participant K8s as Kubernetes
-    participant Data as Data Layer
+    participant Storage as Storage Layer
 
-    Client->>Gateway: HTTPS Request (JWT)
-    Gateway->>Gateway: Validate & Route
-    Gateway->>Service: Forward Request
+    Note over User,Gateway: Authentication via Firebase JWT
 
-    alt Backtesting
-        Service->>Data: Store in BigQuery
-        Service-->>Client: Return Results
-    else Paper Trading
-        Service->>K8s: Deploy Pod
-        K8s->>Data: Stream Updates
-        Service-->>Client: Return Session ID
-    else Analytics
-        Service->>Data: Query Redis/BigQuery
-        Service-->>Client: Return Data
+    rect rgb(240,248,255)
+        Note left of User: Submit Agent
+        User->>Gateway: POST /api/agents/submit
+        Gateway->>Service: Forward to agents-service
+        Service->>Storage: Store code in GCS
+        Service->>Storage: Save metadata in Firestore
+        Service-->>User: Return agent ID
+    end
+
+    rect rgb(255,250,240)
+        Note left of User: Start Paper Trading
+        User->>External: 1. Create account
+        External-->>User: Account ID
+        User->>External: 2. Fund account
+        External-->>User: Success
+        User->>Gateway: POST /api/paper-trading/start
+        Gateway->>Service: Forward to paper-trading-service
+        Service->>K8s: Deploy StatefulSet
+        Service-->>User: Session started
+    end
+
+    rect rgb(240,255,240)
+        Note left of User: Query Analytics
+        User->>Gateway: GET /api/leaderboard
+        Gateway->>Service: Forward to leaderboard-service
+        Service->>Storage: Check Redis cache
+        alt Cache miss
+            Service->>Storage: Query BigQuery
+            Service->>Storage: Update Redis
+        end
+        Service-->>User: Return leaderboard
     end
 ```
 
