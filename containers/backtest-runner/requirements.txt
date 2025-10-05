@@ -1,0 +1,21 @@
+# Backtest Runner Dependencies
+# Core trading framework
+backtrader>=1.9.76.123
+
+# Data handling
+pandas==2.0.3
+numpy==1.24.3
+
+# Google Cloud
+google-cloud-storage==2.10.0
+google-cloud-firestore==2.11.1
+
+# Firebase
+firebase-admin==6.2.0
+
+# Alpaca (for data if needed)
+alpaca-trade-api==3.0.0
+
+# Additional utilities
+python-dateutil==2.8.2
+pytz==2023.3
