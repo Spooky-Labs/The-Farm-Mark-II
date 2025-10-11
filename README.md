@@ -1,294 +1,248 @@
-# The Farm Mark II
+# Spooky Labs Trading Platform
 
-AI Trading Platform with API Gateway, Cloud Run microservices, and Kubernetes runtime.
-
-## Overview
-
-The Farm Mark II is a microservices-based trading platform that enables users to submit trading strategies for backtesting and paper trading. Built on Google Cloud Platform, it leverages API Gateway for HTTP endpoints, Cloud Run for scalable microservices, and Kubernetes for long-running workloads.
+Simple Firebase Functions implementation for algorithmic trading with backtesting and paper trading.
 
 ## Architecture
 
-### Components
-
-- **API Gateway** - OpenAPI 3.0 specification, handles authentication and routing
-- **Cloud Run Services** (5 microservices)
-  - `agents-service` - Agent CRUD operations and validation
-  - `backtest-service` - Orchestrates backtesting via Cloud Build
-  - `paper-trading-service` - Kicks off paper trading pods in Kubernetes
-  - `leaderboard-service` - Redis-cached rankings with BigQuery fallback
-  - `fmel-service` - Analytics and decision explainability
-- **Kubernetes (GKE)** - Runs paper trading pods and data ingestion
-- **External Cloud Functions** - Account operations (separate repository)
-- **Data Layer** - BigQuery, Firestore, Redis, Pub/Sub
-
-### High-Level Architecture
-
-```mermaid
-graph TB
-    subgraph "Client Layer"
-        WEB[Web App]
-        API[API Clients]
-    end
-
-    subgraph "API Gateway"
-        GW[API Gateway<br/>OpenAPI 3.0]
-    end
-
-    subgraph "Cloud Run Services"
-        AS[agents-service<br/>Agent CRUD]
-        BS[backtest-service<br/>Cloud Build orchestration]
-        PS[paper-trading-service<br/>K8s pod launcher]
-        LS[leaderboard-service<br/>Redis caching]
-        FS[fmel-service<br/>Analytics]
-    end
-
-    subgraph "Kubernetes (GKE)"
-        PT[paper-trader<br/>Trading pods]
-        ING[Unified Ingester<br/>WebSocket data]
-    end
-
-    subgraph "Data Storage"
-        BQ[BigQuery<br/>Analytics]
-        REDIS[Redis<br/>Cache]
-        FIRE[Firestore<br/>State]
-        PUB[Pub/Sub<br/>Events]
-        GCS[Cloud Storage<br/>Agent code]
-    end
-
-    subgraph "External Services"
-        ALPACA[Alpaca Markets<br/>Trading API]
-        CF[Cloud Functions<br/>create-account<br/>fund-account]
-    end
-
-    WEB --> GW
-    API --> GW
-
-    GW --> AS
-    GW --> BS
-    GW --> PS
-    GW --> LS
-    GW --> FS
-
-    AS --> GCS
-    AS --> FIRE
-
-    BS --> |Cloud Build| BQ
-
-    PS --> |Deploy| PT
-    CF --> |Account setup| PT
-
-    LS --> REDIS
-    REDIS -.-> |Fallback| BQ
-
-    FS --> BQ
-
-    ALPACA --> |WebSocket| ING
-    ING --> PUB
-    PUB --> PT
-    PT --> |Orders| ALPACA
-    PT --> |FMEL logs| BQ
-
-    style GW fill:#e1f5fe,stroke:#1976d2,stroke-width:2px,color:#000
-    style AS fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style BS fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style PS fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style LS fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style FS fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style REDIS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
-    style BQ fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#000
-    style FIRE fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#000
-    style PUB fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#000
-    style GCS fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#000
-    style PT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style ING fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style ALPACA fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style CF fill:#fce4ec,stroke:#ad1457,stroke-width:2px,color:#000
+```
+functions/
+├── index.js                 # Entry point - imports all functions
+├── submitAgent.js           # Upload trading strategies
+├── beginPaperTrading.js     # Start paper trading
+├── stopPaperTrading.js      # Stop paper trading
+├── getLeaderboard.js        # Public rankings
+├── updateAgentMetadata.js   # Storage trigger for backtesting
+├── multipartFileUpload.js   # Shared utility for file uploads
+├── main.py                  # Python functions (Alpaca integration)
+│   ├── createAccount        # Create Alpaca account
+│   └── fundAccount          # Fund with virtual money
+├── package.json             # Node dependencies
+└── requirements.txt         # Python dependencies
 ```
 
-### Request Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Gateway as API Gateway
-    participant Service as Cloud Run Service
-    participant External as External CF
-    participant K8s as Kubernetes
-    participant Storage as Storage Layer
-
-    Note over User,Gateway: Authentication via Firebase JWT
-
-    rect rgb(240,248,255)
-        Note left of User: Submit Agent
-        User->>Gateway: POST /api/agents/submit
-        Gateway->>Service: Forward to agents-service
-        Service->>Storage: Store code in GCS
-        Service->>Storage: Save metadata in Firestore
-        Service-->>User: Return agent ID
-    end
-
-    rect rgb(255,250,240)
-        Note left of User: Start Paper Trading
-        User->>External: 1. Create account
-        External-->>User: Account ID
-        User->>External: 2. Fund account
-        External-->>User: Success
-        User->>Gateway: POST /api/paper-trading/start
-        Gateway->>Service: Forward to paper-trading-service
-        Service->>K8s: Deploy StatefulSet
-        Service-->>User: Session started
-    end
-
-    rect rgb(240,255,240)
-        Note left of User: Query Analytics
-        User->>Gateway: GET /api/leaderboard
-        Gateway->>Service: Forward to leaderboard-service
-        Service->>Storage: Check Redis cache
-        alt Cache miss
-            Service->>Storage: Query BigQuery
-            Service->>Storage: Update Redis
-        end
-        Service-->>User: Return leaderboard
-    end
-```
-
-## Project Structure
-
-```
-.
-├── api-gateway/          # OpenAPI specification
-├── services/             # Cloud Run microservices
-│   ├── agents-service/
-│   ├── backtest-service/
-│   ├── paper-trading-service/
-│   ├── leaderboard-service/
-│   └── fmel-service/
-├── containers/           # Docker containers
-│   ├── backtest-runner/
-│   └── paper-trader/
-├── ingesters/            # Market data ingestion
-├── kubernetes/           # K8s manifests
-├── terraform/            # Infrastructure as code
-├── schemas/              # BigQuery schemas
-├── scripts/              # Deployment and utilities
-├── tests/                # Integration tests
-└── docs/                 # Architecture documentation
-```
-
-## Key Features
-
-- **Microservices Architecture** - Independent scaling and deployment
-- **API Gateway** - Contract-first development with OpenAPI spec
-- **Scale to Zero** - Cloud Run services scale down when idle
-- **Redis Caching** - Sub-10ms leaderboard response times
-- **FMEL** - Complete trading decision explainability
-- **Paper Trading** - Alpaca paper accounts with $100k virtual funds
-
-## Deployment
+## Quick Start
 
 ### Prerequisites
 
-- Google Cloud Platform account with billing enabled
-- `gcloud`, `terraform`, `kubectl`, `docker` installed
-- Project ID and region configured
+- Node.js 18+
+- Python 3.9+
+- Firebase CLI
+- Google Cloud Project with billing enabled
 
-### Quick Deploy
+### Setup
 
-```bash
-# 1. Clone repository
-git clone https://github.com/Spooky-Labs/The-Farm-Mark-II.git
-cd The-Farm-Mark-II
+1. **Install Firebase CLI**
+   ```bash
+   npm install -g firebase-tools
+   firebase login
+   ```
 
-# 2. Deploy infrastructure (Terraform)
-cd terraform
-terraform init
-terraform plan -var="project_id=YOUR_PROJECT" -var="region=us-central1"
-terraform apply
+2. **Configure project**
+   ```bash
+   # Set your project ID
+   firebase use YOUR_PROJECT_ID
 
-# 3. Deploy services
-cd ..
-./scripts/deploy.sh YOUR_PROJECT us-central1
+   # Or create .firebaserc manually
+   echo '{"projects":{"default":"YOUR_PROJECT_ID"}}' > .firebaserc
+   ```
 
-# 4. Verify deployment
-kubectl get pods --all-namespaces
-gcloud run services list
-```
+3. **Install dependencies**
+   ```bash
+   cd functions
+   npm install
+   pip install -r requirements.txt
+   ```
 
-## API Endpoints
+4. **Set environment variables**
+   ```bash
+   firebase functions:config:set \
+     alpaca.api_key="YOUR_ALPACA_API_KEY" \
+     alpaca.secret_key="YOUR_ALPACA_SECRET_KEY" \
+     alpaca.broker_api_key="YOUR_BROKER_API_KEY" \
+     alpaca.broker_secret="YOUR_BROKER_SECRET"
+   ```
 
-Base URL: `https://{gateway-url}`
-
-### Agent Management
-- `POST /api/agents/submit` - Submit new agent
-- `GET /api/agents/list` - List user's agents
-- `GET /api/agents/{id}` - Get agent details
-- `DELETE /api/agents/{id}` - Delete agent
-
-### Backtesting
-- `POST /api/backtest/{agentId}/start` - Start backtest
-- `GET /api/backtest/{sessionId}/results` - Get results
-
-### Paper Trading
-- `POST /api/paper-trading/start` - Start paper trading
-- `GET /api/paper-trading/status/{agentId}` - Check status
-- `POST /api/paper-trading/stop` - Stop trading
-
-### Analytics
-- `GET /api/leaderboard` - Public leaderboard
-- `GET /api/fmel/decisions` - FMEL decision records
-- `GET /api/fmel/analytics` - Performance analytics
-
-## Testing
+### Deploy
 
 ```bash
-# Run all tests
-./scripts/test-all.sh
+# Deploy everything
+firebase deploy
 
-# Individual test suites
-npm test                          # API tests
-python tests/test_integration.py  # Integration tests
-./tests/test_terraform.sh        # Infrastructure validation
+# Or deploy only functions
+firebase deploy --only functions
+
+# Deploy specific function
+firebase deploy --only functions:submitAgent
 ```
 
-## Configuration
+## Endpoints
 
-### Environment Variables
+After deployment, your functions will be available at:
 
-Services use these environment variables:
-- `PROJECT_ID` - GCP project ID
-- `REGION` - Deployment region
-- `REDIS_HOST` - Redis instance host
-- `FIRESTORE_DATABASE` - Firestore database name
+```
+https://us-central1-PROJECT_ID.cloudfunctions.net/submitAgent
+https://us-central1-PROJECT_ID.cloudfunctions.net/createAccount
+https://us-central1-PROJECT_ID.cloudfunctions.net/fundAccount
+https://us-central1-PROJECT_ID.cloudfunctions.net/beginPaperTrading
+https://us-central1-PROJECT_ID.cloudfunctions.net/stopPaperTrading
+https://us-central1-PROJECT_ID.cloudfunctions.net/getLeaderboard
+```
 
-### Secrets
+## Storage Buckets
 
-Managed via Google Secret Manager:
-- `alpaca-api-key` - Alpaca API key
-- `alpaca-secret-key` - Alpaca secret
-- `firebase-api-key` - Firebase API key
+The platform uses these Cloud Storage buckets:
 
-## Documentation
+- `PROJECT_ID-agent-code` - Agent Python files
+- `PROJECT_ID-backtest-results` - Backtest output
 
-- [Architecture Guide](docs/ARCHITECTURE.md) - Detailed system design
-- [API Reference](api-gateway/openapi-spec.yaml) - OpenAPI specification
-- [Deployment Guide](scripts/deploy.sh) - Deployment automation
-- [Migration Notes](docs/MIGRATION_GUIDE.md) - From Cloud Functions to microservices
+## Database Structure
 
-## Monitoring
+Firebase Realtime Database (maintains backward compatibility):
 
-- **Cloud Run Metrics** - Request latency, error rates, instance count
-- **Kubernetes Monitoring** - Pod health, resource utilization
-- **BigQuery Analytics** - Query performance, data volume
-- **Redis Metrics** - Cache hit rate, memory usage
+```
+agents/
+  {userId}/
+    {agentId}/     # agentId uses Firebase push().key format
+      - agentId
+      - userId
+      - timestamp
+      - numberOfFiles
+      - status
+      - files[]
+      - bucketName
 
-## Support
+users/
+  {userId}/
+    agents/
+      {agentId}/   # Duplicate for user-centric queries
+        - agentId
+        - userId
+        - timestamp
+        - numberOfFiles
+        - status
+        - files[]
+        - bucketName
+        - backtestStatus
+        - backtestResults
+    accounts/
+      {agentId}/
+        - accountId
+        - funded
+        - balance
 
-- Issues: [GitHub Issues](https://github.com/Spooky-Labs/The-Farm-Mark-II/issues)
-- Email: support@spookylabs.com
+paperTradingSessions/
+  {sessionId}/
+    - agentId
+    - userId
+    - status
+```
+
+**Important Notes:**
+- Agent IDs are generated using Firebase `push().key` for time-ordered uniqueness
+- Agent data is stored in both `/agents/{userId}/{agentId}` and `/users/{userId}/agents/{agentId}` for backward compatibility
+- Multiple Python files can be uploaded per agent
+- File paths in Storage follow pattern: `agents/{userId}/{agentId}/{filename}`
+
+## Code Organization
+
+Each function is in its own file for better maintainability:
+
+- **JavaScript Functions**: Each endpoint has its own `.js` file
+- **Python Functions**: Both Alpaca functions in `main.py`
+- **Shared Utilities**: `multipartFileUpload.js` handles file parsing
+- **Entry Point**: `index.js` imports and exports all functions
+
+This follows the same pattern as the original Cloud Functions repository, making the code easier to read, test, and maintain.
+
+## Development
+
+### Local Testing
+
+```bash
+# Start Firebase emulators
+firebase emulators:start
+
+# Test functions locally
+firebase functions:shell
+```
+
+### Logs
+
+```bash
+# View function logs
+firebase functions:log
+
+# Follow logs
+firebase functions:log --follow
+
+# Filter by function
+firebase functions:log --only submitAgent
+```
+
+## API Usage
+
+### Submit Agent
+
+```javascript
+const formData = new FormData();
+// Can upload multiple Python files
+formData.append('files', strategyFile);
+formData.append('files', utilsFile);
+
+const response = await fetch('https://us-central1-PROJECT.cloudfunctions.net/submitAgent', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${idToken}`
+  },
+  body: formData
+});
+
+// Response format:
+// {
+//   success: true,
+//   agentId: "-NjKlMnOpQrStUvWxYz",  // Firebase push key
+//   timestamp: 1699123456789,
+//   userId: "user123",
+//   numberOfFiles: 2,
+//   bucketName: "PROJECT-agent-code"
+// }
+```
+
+### Create Account
+
+```javascript
+await fetch('https://us-central1-PROJECT.cloudfunctions.net/createAccount', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${idToken}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ agentId })
+});
+```
+
+### Get Leaderboard (Public)
+
+```javascript
+await fetch('https://us-central1-PROJECT.cloudfunctions.net/getLeaderboard?timeframe=weekly');
+```
+
+## Cost
+
+Typical monthly costs with Firebase Functions:
+
+- **Functions**: ~$5-10 (first 2M invocations free)
+- **Database**: ~$5 (1GB storage, 10GB bandwidth free)
+- **Storage**: ~$5 (5GB storage, 1GB bandwidth free)
+- **Total**: ~$15-25/month for moderate usage
+
+## Security
+
+- All functions (except leaderboard) require Firebase Authentication
+- Database rules enforce user data isolation
+- Storage rules prevent unauthorized access
+- Alpaca API keys stored in environment config
 
 ## License
 
 Proprietary - Spooky Labs
-
----
-*Built by Spooky Labs Engineering*

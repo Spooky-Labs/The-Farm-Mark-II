@@ -1,0 +1,35 @@
+{
+  "name": "spooky-labs-functions",
+  "version": "1.0.0",
+  "description": "Firebase Functions for Spooky Labs Trading Platform",
+  "main": "index.js",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log",
+    "emulators": "firebase emulators:start",
+    "emulators:export": "firebase emulators:export ./emulator-data",
+    "test:local": "node ../test-local.js",
+    "test:emulators": "firebase emulators:exec --only functions,database,storage 'npm run test:local'"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "dependencies": {
+    "firebase-functions": "^4.5.0",
+    "firebase-admin": "^11.11.0",
+    "@google-cloud/cloudbuild": "^4.1.0",
+    "@google-cloud/storage": "^7.5.0",
+    "@google-cloud/bigquery": "^7.3.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "busboy": "^1.6.0"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.1.0",
+    "node-fetch": "^2.6.9",
+    "form-data": "^4.0.0"
+  }
+}
