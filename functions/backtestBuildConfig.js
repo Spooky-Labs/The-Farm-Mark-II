@@ -1,6 +1,6 @@
 /**
  * Cloud Build Configuration for Backtesting
- * Generates the build configuration for running agent backtests
+ * Exact configuration from production Cloud Functions repository
  */
 
 /**
@@ -11,100 +11,139 @@
  * @param {string} params.agentId - Agent ID
  * @param {string} params.userId - User ID
  * @param {string} params.bucketName - Storage bucket name
- * @param {string} params.filePath - Path to agent file in storage
  * @returns {Object} Cloud Build configuration object
  */
 function createBacktestBuildConfig(params) {
-    const { projectId, agentId, userId, bucketName, filePath } = params;
+    const { projectId, agentId, userId, bucketName } = params;
+
+    const imageName = `gcr.io/${projectId}/course-1:A${agentId}`;
+    const sourceLocation = `gs://${bucketName}/agents/${userId}/${agentId}`;
+    const resultsPath = `/creators/${userId}/agents/${agentId}/backtest`;
 
     return {
         steps: [
-            // Step 1: Clone Course-1 repository (contains backtesting framework)
+            // Step 1: Clone Course-1 repository from GitHub
             {
                 name: 'gcr.io/cloud-builders/git',
-                args: ['clone', 'https://github.com/Spooky-Labs/Course-1.git', '/workspace/course1'],
-                id: 'clone-course-1'
+                args: ['clone', 'https://github.com/Spooky-Labs/Course-1.git'],
+                id: 'clone-course-1',
+                entrypoint: 'git', // Needed to prevent errors in subsequent steps
             },
-
-            // Step 2: Download agent code from Cloud Storage
+            // Step 2: Move Dockerfile to workspace
+            {
+                name: 'ubuntu',
+                args: ['-c', 'mv /workspace/Course-1/Dockerfile /workspace'],
+                id: 'move-dockerfile',
+                entrypoint: 'bash',
+            },
+            // Step 3: Move requirements.txt to workspace
+            {
+                name: 'ubuntu',
+                args: ['-c', 'mv /workspace/Course-1/requirements.txt /workspace'],
+                id: 'move-requirements',
+                entrypoint: 'bash',
+            },
+            // Step 4: Move runner.py to workspace
+            {
+                name: 'ubuntu',
+                args: ['-c', 'mv /workspace/Course-1/runner.py /workspace'],
+                id: 'move-runner',
+                entrypoint: 'bash',
+            },
+            // Step 5: Move symbols.txt to workspace
+            {
+                name: 'ubuntu',
+                args: ['-c', 'mv /workspace/Course-1/symbols.txt /workspace'],
+                id: 'move-symbols',
+                entrypoint: 'bash',
+            },
+            // Step 6: Create data directory
+            {
+                name: 'ubuntu',
+                args: ['-c', 'mkdir -p /workspace/data'],
+                id: 'create-data-dir',
+                entrypoint: 'bash',
+            },
+            // Step 7: Create output directory
+            {
+                name: 'ubuntu',
+                entrypoint: 'mkdir',
+                args: ['-p', '/workspace/output'],
+                id: 'create-output-dir'
+            },
+            // Step 8: Move data files to workspace
+            {
+                name: 'ubuntu',
+                args: ['-c', 'mv /workspace/Course-1/data/* /workspace/data'],
+                id: 'move-data',
+                entrypoint: 'bash',
+            },
+            // Step 9: Copy agent code from Cloud Storage
             {
                 name: 'gcr.io/cloud-builders/gsutil',
-                args: ['cp', `gs://${bucketName}/${filePath}`, '/workspace/agent_code.py'],
-                id: 'download-agent'
+                args: ['-m', 'cp', '-r', sourceLocation, '/workspace/agent'],
+                id: 'copy-agent-from-storage'
             },
-
-            // Step 3: Build Docker image with agent code
+            // Step 10: Build Docker image with agent code
             {
                 name: 'gcr.io/cloud-builders/docker',
                 args: [
                     'build',
-                    '-t', `gcr.io/${projectId}/backtest-${agentId}:latest`,
-                    '-f', '/workspace/course1/Dockerfile',
-                    '--build-arg', 'AGENT_FILE=/workspace/agent_code.py',
-                    '/workspace/course1'
+                    '-t', imageName,
+                    '.'
                 ],
-                id: 'build-image'
+                extra_args: [
+                    '--network=none',
+                    '--no-cache',
+                    '--cap-drop=ALL',
+                    '--security-opt', 'no-new-privileges',
+                ],
+                id: 'build-agent-test-image'
             },
-
-            // Step 4: Run backtest in isolated container
+            // Step 11: Run isolated backtest container
             {
                 name: 'gcr.io/cloud-builders/docker',
                 entrypoint: 'bash',
                 args: [
                     '-c',
-                    `docker run \
-                     --rm \
-                     --network=none \
-                     --memory=2g \
-                     --cpus=1 \
-                     -e PROJECT_ID=${projectId} \
-                     -e AGENT_ID=${agentId} \
-                     -e USER_ID=${userId} \
-                     -e MODE=BACKTEST \
-                     -e START_DATE=2023-01-01 \
-                     -e END_DATE=2023-12-31 \
-                     -e INITIAL_CASH=100000 \
-                     gcr.io/${projectId}/backtest-${agentId}:latest \
-                     > /workspace/results.json`
+                    `set -e; set -o pipefail; \
+                 docker run \\
+                  --rm \\
+                  --network=none \\
+                  --read-only \\
+                  --security-opt no-new-privileges \\
+                  --cap-drop ALL \\
+                  -v /workspace:/workspace \\
+                  ${imageName} \\
+                  > /workspace/output.json`
                 ],
-                id: 'run-backtest'
+                id: 'run-isolated-backtest',
             },
 
-            // Step 5: Upload results back to Cloud Storage
+            // Step 12: Write backtest results to Realtime Database
             {
-                name: 'gcr.io/cloud-builders/gsutil',
-                args: [
-                    'cp',
-                    '/workspace/results.json',
-                    `gs://${projectId}-backtest-results/${userId}/${agentId}/results.json`
-                ],
-                id: 'upload-results'
-            },
-
-            // Step 6: Parse and store results in Realtime Database
-            {
-                name: 'gcr.io/cloud-builders/gcloud',
+                name: 'node:20',
                 entrypoint: 'bash',
                 args: [
                     '-c',
-                    `
-                    # Read the results
-                    RESULTS=$(cat /workspace/results.json)
-
-                    # Update Firebase Realtime Database via REST API
-                    curl -X PATCH \
-                        "https://${projectId}-default-rtdb.firebaseio.com/users/${userId}/agents/${agentId}.json" \
-                        -d '{"backtestStatus":"completed","backtestResults":'"\$RESULTS"',"backtestCompletedAt":"'$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")'"}'
-                    `
+                    `npm install -g firebase-tools && \
+                            if firebase database:update ${resultsPath} /workspace/output.json --project ${projectId} --force --debug; then
+                                firebase database:update "/creators/${userId}/agents/${agentId}" --data '{"status": "success", "completedAt": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"}'
+                            else
+                                firebase database:update "/creators/${userId}/agents/${agentId}" --data '{"status": "failed", "error": "Backtest failed", "completedAt": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"}'
+                                exit 1
+                            fi`
                 ],
-                id: 'update-database'
+                id: 'write-results-rtdb-firebase-cli',
+                waitFor: ['run-isolated-backtest']
             }
         ],
-        timeout: '1800s',  // 30 minutes
-        options: {
-            machineType: 'E2_STANDARD_2',
-            diskSizeGb: 20,
-            logging: 'CLOUD_LOGGING_ONLY'
+        images: [
+            imageName
+        ],
+        timeout: {
+            seconds: 1200,  // 20 minutes (or whatever duration you need)
+            // nanos: 0, // Optional: Add nanoseconds if needed.
         }
     };
 }
