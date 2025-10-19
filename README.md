@@ -1,195 +1,132 @@
-# Spooky Labs Trading Platform
+# Spooky Labs Trading Platform - Agent Submission Service
 
-Simple Firebase Functions implementation for algorithmic trading with backtesting and paper trading.
+A minimal Firebase Functions service for submitting and processing trading agent code with automated backtesting via Cloud Build.
+
+## Overview
+
+This service provides a single API endpoint for uploading Python trading strategy files. When files are uploaded, they are stored in Cloud Storage and automatically trigger a backtesting pipeline.
 
 ## Architecture
 
 ```
 functions/
-├── index.js                 # Entry point - imports all functions
-├── submitAgent.js           # Upload trading strategies
-├── beginPaperTrading.js     # Start paper trading
-├── stopPaperTrading.js      # Stop paper trading
-├── getLeaderboard.js        # Public rankings
-├── updateAgentMetadata.js   # Storage trigger for backtesting
-├── multipartFileUpload.js   # Shared utility for file uploads
-├── main.py                  # Python functions (Alpaca integration)
-│   ├── createAccount        # Create Alpaca account
-│   └── fundAccount          # Fund with virtual money
-├── package.json             # Node dependencies
-└── requirements.txt         # Python dependencies
+├── index.js                     # Entry point
+├── submitAgent.js               # HTTP endpoint for file uploads
+├── updateAgentMetadata.js       # Storage-triggered backtesting
+└── utils/
+    ├── authUtils.js            # Firebase authentication
+    ├── multipartFileUpload.js  # File upload handling
+    └── backtestBuildConfig.js  # Cloud Build configuration
 ```
 
-## Quick Start
-
-### Prerequisites
+## Prerequisites
 
 - Node.js 18+
-- Python 3.9+
-- Firebase CLI
+- Firebase CLI (`npm install -g firebase-tools`)
 - Google Cloud Project with billing enabled
+- Firebase Authentication enabled
+- Cloud Storage and Cloud Build APIs enabled
 
-### Setup
+## Setup
 
-1. **Install Firebase CLI**
-   ```bash
-   npm install -g firebase-tools
-   firebase login
-   ```
-
-2. **Configure project**
-   ```bash
-   # Set your project ID
-   firebase use YOUR_PROJECT_ID
-
-   # Or create .firebaserc manually
-   echo '{"projects":{"default":"YOUR_PROJECT_ID"}}' > .firebaserc
-   ```
-
-3. **Install dependencies**
-   ```bash
-   cd functions
-   npm install
-   pip install -r requirements.txt
-   ```
-
-4. **Set environment variables**
-   ```bash
-   firebase functions:config:set \
-     alpaca.api_key="YOUR_ALPACA_API_KEY" \
-     alpaca.secret_key="YOUR_ALPACA_SECRET_KEY" \
-     alpaca.broker_api_key="YOUR_BROKER_API_KEY" \
-     alpaca.broker_secret="YOUR_BROKER_SECRET"
-   ```
-
-### Deploy
+### 1. Clone and Install
 
 ```bash
-# Deploy everything
-firebase deploy
+# Clone the repository
+git clone [your-repo-url]
+cd "The Farm Mark II"
 
-# Or deploy only functions
+# Install dependencies
+cd functions
+npm install
+cd ..
+```
+
+### 2. Configure Firebase
+
+```bash
+# Login to Firebase
+firebase login
+
+# Set your project ID
+firebase use YOUR-PROJECT-ID
+
+# Or update .firebaserc manually
+```
+
+### 3. Create Storage Bucket
+
+The service requires this Cloud Storage bucket:
+- `YOUR-PROJECT-ID-agent-code` - For storing uploaded agent files
+
+```bash
+# Create bucket via gsutil
+gsutil mb gs://YOUR-PROJECT-ID-agent-code
+```
+
+Note: Backtest results are stored in Firebase Realtime Database, not in a separate storage bucket.
+
+## Deployment
+
+For a complete deployment checklist, see `docs/DEPLOYMENT_CHECKLIST.md`.
+
+### Deploy Everything
+
+```bash
+firebase deploy
+```
+
+This deploys:
+- Cloud Functions (submitAgent, updateAgentMetadata)
+- Database rules
+- Storage rules
+
+### Deploy Only Functions
+
+```bash
 firebase deploy --only functions
 
-# Deploy specific function
-firebase deploy --only functions:submitAgent
+# Or specific functions
+firebase deploy --only functions:submitAgent,functions:updateAgentMetadata
 ```
 
-## Endpoints
+## API Endpoint
 
-After deployment, your functions will be available at:
-
-```
-https://us-central1-PROJECT_ID.cloudfunctions.net/submitAgent
-https://us-central1-PROJECT_ID.cloudfunctions.net/createAccount
-https://us-central1-PROJECT_ID.cloudfunctions.net/fundAccount
-https://us-central1-PROJECT_ID.cloudfunctions.net/beginPaperTrading
-https://us-central1-PROJECT_ID.cloudfunctions.net/stopPaperTrading
-https://us-central1-PROJECT_ID.cloudfunctions.net/getLeaderboard
-```
-
-## Storage Buckets
-
-The platform uses these Cloud Storage buckets:
-
-- `PROJECT_ID-agent-code` - Agent Python files
-- `PROJECT_ID-backtest-results` - Backtest output
-
-## Database Structure
-
-Firebase Realtime Database (maintains backward compatibility):
+After deployment, your API will be available at:
 
 ```
-agents/
-  {userId}/
-    {agentId}/     # agentId uses Firebase push().key format
-      - agentId
-      - userId
-      - timestamp
-      - numberOfFiles
-      - status
-      - files[]
-      - bucketName
-
-users/
-  {userId}/
-    agents/
-      {agentId}/   # Duplicate for user-centric queries
-        - agentId
-        - userId
-        - timestamp
-        - numberOfFiles
-        - status
-        - files[]
-        - bucketName
-        - backtestStatus
-        - backtestResults
-    accounts/
-      {agentId}/
-        - accountId
-        - funded
-        - balance
-
-paperTradingSessions/
-  {sessionId}/
-    - agentId
-    - userId
-    - status
+https://us-central1-YOUR-PROJECT-ID.cloudfunctions.net/submitAgent
 ```
-
-**Important Notes:**
-- Agent IDs are generated using Firebase `push().key` for time-ordered uniqueness
-- Agent data is stored in both `/agents/{userId}/{agentId}` and `/users/{userId}/agents/{agentId}` for backward compatibility
-- Multiple Python files can be uploaded per agent
-- File paths in Storage follow pattern: `agents/{userId}/{agentId}/{filename}`
-
-## Code Organization
-
-Each function is in its own file for better maintainability:
-
-- **JavaScript Functions**: Each endpoint has its own `.js` file
-- **Python Functions**: Both Alpaca functions in `main.py`
-- **Shared Utilities**: `multipartFileUpload.js` handles file parsing
-- **Entry Point**: `index.js` imports and exports all functions
-
-This follows the same pattern as the original Cloud Functions repository, making the code easier to read, test, and maintain.
-
-## Development
-
-### Local Testing
-
-```bash
-# Start Firebase emulators
-firebase emulators:start
-
-# Test functions locally
-firebase functions:shell
-```
-
-### Logs
-
-```bash
-# View function logs
-firebase functions:log
-
-# Follow logs
-firebase functions:log --follow
-
-# Filter by function
-firebase functions:log --only submitAgent
-```
-
-## API Usage
 
 ### Submit Agent
 
+**Request:**
+- Method: `POST`
+- Headers:
+  - `Authorization: Bearer {FIREBASE_ID_TOKEN}`
+  - `Content-Type: multipart/form-data`
+- Body: Form data with Python files (max 10MB per file)
+
+**Response (201 Created):**
+```json
+{
+  "agentId": "-NjKlMnOpQrStUvWxYz",
+  "timestamp": 1699123456789,
+  "numberOfFiles": 2,
+  "userId": "uid123"
+}
+```
+
+**Example Usage:**
+
 ```javascript
 const formData = new FormData();
-// Can upload multiple Python files
-formData.append('files', strategyFile);
-formData.append('files', utilsFile);
+formData.append('files', agentFile1);
+formData.append('files', agentFile2);
 
-const response = await fetch('https://us-central1-PROJECT.cloudfunctions.net/submitAgent', {
+const idToken = await firebase.auth().currentUser.getIdToken();
+
+const response = await fetch('https://us-central1-YOUR-PROJECT-ID.cloudfunctions.net/submitAgent', {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${idToken}`
@@ -197,51 +134,149 @@ const response = await fetch('https://us-central1-PROJECT.cloudfunctions.net/sub
   body: formData
 });
 
-// Response format:
-// {
-//   success: true,
-//   agentId: "-NjKlMnOpQrStUvWxYz",  // Firebase push key
-//   timestamp: 1699123456789,
-//   userId: "user123",
-//   numberOfFiles: 2,
-//   bucketName: "PROJECT-agent-code"
-// }
+const result = await response.json();
+console.log('Agent ID:', result.agentId);
 ```
 
-### Create Account
+## Process Flow
 
-```javascript
-await fetch('https://us-central1-PROJECT.cloudfunctions.net/createAccount', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${idToken}`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({ agentId })
-});
+1. **User uploads files** via submitAgent endpoint
+2. **Files stored** in Cloud Storage at `agents/{userId}/{agentId}/`
+3. **Storage trigger** fires updateAgentMetadata function
+4. **Metadata saved** to Firebase Realtime Database
+5. **Cloud Build job** submitted for backtesting
+6. **Backtest results** written to Database at `/creators/{userId}/agents/{agentId}/backtest`
+
+## Database Structure
+
+```
+agents/
+  {userId}/
+    {agentId}/
+      - agentId        # Firebase push key format
+      - userId
+      - timestamp
+      - numberOfFiles
+      - status         # 'stored' | 'building' | 'completed' | 'failed'
+      - bucketName
+      - buildId        # Cloud Build job ID
+
+users/
+  {userId}/
+    agents/
+      {agentId}/       # Mirror of agents/{userId}/{agentId}
+
+creators/
+  {userId}/
+    agents/
+      {agentId}/
+        - status       # 'success' | 'failed'
+        - completedAt  # ISO timestamp
+        backtest/      # Backtest results JSON from runner.py
+          - (backtest output data)
 ```
 
-### Get Leaderboard (Public)
+## Local Development
 
-```javascript
-await fetch('https://us-central1-PROJECT.cloudfunctions.net/getLeaderboard?timeframe=weekly');
+### Using Firebase Emulator
+
+```bash
+# Start emulators
+firebase emulators:start
+
+# The UI will be available at http://localhost:4000
 ```
 
-## Cost
+For detailed emulator instructions, see `docs/RUN_EMULATOR.md`.
 
-Typical monthly costs with Firebase Functions:
+### Testing
 
-- **Functions**: ~$5-10 (first 2M invocations free)
-- **Database**: ~$5 (1GB storage, 10GB bandwidth free)
-- **Storage**: ~$5 (5GB storage, 1GB bandwidth free)
-- **Total**: ~$15-25/month for moderate usage
+```bash
+# Test with cURL
+curl -X POST \
+  http://localhost:5001/YOUR-PROJECT-ID/us-central1/submitAgent \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "files=@test-agent.py"
+```
+
+## API Documentation
+
+Interactive API documentation is available in the `docs/` folder:
+
+- `swagger.yaml` - OpenAPI specification
+- `API_DOCUMENTATION.md` - Quick reference guide
+
+To view the interactive documentation, see instructions in `docs/API_DOCUMENTATION.md`.
+
+## Monitoring
+
+### View Logs
+
+```bash
+# View function logs
+firebase functions:log
+
+# Follow logs in real-time
+firebase functions:log --follow
+
+# Filter by function
+firebase functions:log --only submitAgent
+```
+
+### Google Cloud Console
+
+Monitor your functions at:
+```
+https://console.cloud.google.com/functions/list?project=YOUR-PROJECT-ID
+```
 
 ## Security
 
-- All functions (except leaderboard) require Firebase Authentication
-- Database rules enforce user data isolation
-- Storage rules prevent unauthorized access
-- Alpaca API keys stored in environment config
+- **Authentication**: All endpoints require Firebase Authentication
+- **File Validation**: Only Python files (.py) accepted
+- **Size Limits**: 10MB max per file
+- **Database Rules**: User data isolation enforced
+- **Storage Rules**: Authenticated access only
+
+## Environment Variables
+
+The following are automatically available:
+- `GCLOUD_PROJECT` - Your project ID
+- `FIREBASE_CONFIG` - Firebase configuration
+
+## Cost Estimation
+
+For moderate usage (1000 submissions/month):
+- **Cloud Functions**: ~$0 (free tier: 2M invocations/month)
+- **Cloud Storage**: ~$0.02 (for 1GB storage)
+- **Cloud Build**: ~$3 (120 build-minutes free, then $0.003/minute)
+- **Database**: ~$1 (for 1GB stored)
+- **Total**: ~$5/month
+
+## Troubleshooting
+
+### Function Not Found
+```bash
+# Check deployment status
+firebase deploy --only functions --debug
+```
+
+### Storage Trigger Not Firing
+- Ensure firebase-admin SDK is version 9.7.0+
+- Check that buckets exist and have correct names
+- Verify storage rules allow write access
+
+### Authentication Errors
+- Ensure Firebase Authentication is enabled in console
+- Check that ID token is valid and not expired
+- Verify Authorization header format: `Bearer {token}`
+
+## Support
+
+For issues or questions:
+- Check `docs/` folder for detailed documentation
+- View logs with `firebase functions:log`
+- Open an issue on GitHub
 
 ## License
 

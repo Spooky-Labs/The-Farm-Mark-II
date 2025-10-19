@@ -9,8 +9,8 @@ const admin = require('firebase-admin');
 const express = require('express');
 const cors = require('cors');
 const { Storage } = require('@google-cloud/storage');
-const { multipartFileUpload } = require('./multipartFileUpload');
-const { verifyIdToken } = require('./authUtils');
+const { multipartFileUpload } = require('./utils/multipartFileUpload');
+const { verifyIdToken } = require('./utils/authUtils');
 
 // Initialize if not already done
 if (!admin.apps.length) {
@@ -92,14 +92,7 @@ app.post('/', multipartFileUpload, verifyIdToken, (req, res) => {
 
             // Return response matching original Cloud Function format
             // Storage trigger (updateAgentMetadata) will handle database updates
-            res.status(201).send({
-                success: true,
-                agentId: responseObj.agentId,
-                timestamp: responseObj.timestamp,
-                userId: responseObj.userId,
-                numberOfFiles: responseObj.numberOfFiles,
-                bucketName: BUCKET_NAME
-            });
+            res.status(201).send(responseObj);
         })
         .catch(function(error) {
             console.error('Error submitting agent:', error);

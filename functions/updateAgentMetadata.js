@@ -7,7 +7,7 @@ const { onObjectFinalized } = require('firebase-functions/v2/storage');
 const admin = require('firebase-admin');
 const { CloudBuildClient } = require('@google-cloud/cloudbuild');
 const logger = require('firebase-functions/logger');
-const { createBacktestBuildConfig } = require('./backtestBuildConfig');
+const { createBacktestBuildConfig } = require('./utils/backtestBuildConfig');
 
 // Initialize if not already done
 if (!admin.apps.length) {

@@ -1,5 +1,0 @@
-# Python dependencies for Firebase Functions
-firebase-functions==0.1.2
-firebase-admin==6.3.0
-alpaca-py==0.13.3
-alpaca-trade-api==3.0.2

@@ -1,0 +1,233 @@
+openapi: 3.0.3
+info:
+  title: Trading Agent Submission API
+  description: |
+    API for submitting trading agent code for backtesting.
+
+    ## Overview
+    This API allows authenticated users to submit Python trading agent code files.
+    Submitted files are stored in Cloud Storage and automatically trigger backtesting via Cloud Build.
+
+    ## Authentication
+    Requires Firebase ID token authentication via Bearer token in the Authorization header.
+  version: 1.0.0
+  contact:
+    name: Spooky Labs Support
+    email: support@spookylabs.com
+
+servers:
+  - url: https://us-central1-{projectId}.cloudfunctions.net
+    description: Production
+    variables:
+      projectId:
+        default: your-project-id
+        description: Your Firebase project ID
+  - url: http://localhost:5001/{projectId}/us-central1
+    description: Local Firebase Emulator
+    variables:
+      projectId:
+        default: your-project-id
+        description: Your Firebase project ID
+
+tags:
+  - name: Agent Submission
+    description: Submit trading agent code for backtesting
+
+paths:
+  /submitAgent:
+    post:
+      tags:
+        - Agent Submission
+      summary: Submit trading agent code
+      description: |
+        Upload Python trading agent files for backtesting.
+
+        **Process Flow:**
+        1. Files are uploaded and stored in Cloud Storage
+        2. Storage trigger fires `updateAgentMetadata` function
+        3. Agent metadata is saved to Firebase Realtime Database
+        4. Cloud Build job is triggered for backtesting
+        5. Results are stored in the backtest results bucket
+
+        **File Requirements:**
+        - Python files (.py)
+        - Maximum 10MB per file
+        - At least one file required
+      operationId: submitAgent
+      security:
+        - firebaseAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - files
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Python trading agent files
+                  minItems: 1
+            encoding:
+              files:
+                contentType: text/x-python
+      responses:
+        '201':
+          description: Agent successfully submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - agentId
+                  - timestamp
+                  - numberOfFiles
+                  - userId
+                properties:
+                  agentId:
+                    type: string
+                    description: Unique identifier for the submitted agent
+                    example: "-NjKlMnOpQrStUvWxYz"
+                  timestamp:
+                    type: integer
+                    format: int64
+                    description: Unix timestamp of submission
+                    example: 1699123456789
+                  numberOfFiles:
+                    type: integer
+                    description: Number of files uploaded
+                    example: 2
+                  userId:
+                    type: string
+                    description: Firebase user ID of the submitter
+                    example: "uid123"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                noFiles:
+                  summary: No files provided
+                  value:
+                    error: "No files provided in request"
+                invalidFile:
+                  summary: Invalid file type
+                  value:
+                    error: "Only Python files (.py) are accepted"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                noToken:
+                  summary: Missing authentication token
+                  value:
+                    error: "No Firebase ID token was passed"
+                expiredToken:
+                  summary: Expired token
+                  value:
+                    error: "Firebase ID token has expired"
+                    code: "auth/id-token-expired"
+        '413':
+          description: Payload Too Large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "File size exceeds 10MB limit"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Internal server error"
+                debug: "Error message details"
+
+components:
+  securitySchemes:
+    firebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Firebase ID Token
+      description: |
+        Firebase ID token obtained from Firebase Authentication.
+
+        To obtain a token:
+        1. Sign in to your Firebase app
+        2. Get the ID token: `firebase.auth().currentUser.getIdToken()`
+        3. Include in request: `Authorization: Bearer {idToken}`
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code (e.g., auth/id-token-expired)
+        debug:
+          type: string
+          description: Additional debug information (development only)
+
+# Additional Information
+
+x-readme: |
+  ## Storage-Triggered Function
+
+  The `updateAgentMetadata` function is automatically triggered when files are uploaded to the storage bucket.
+  This is not a directly callable HTTP endpoint.
+
+  **Trigger:** Cloud Storage `onObjectFinalized` event
+  **Bucket:** `{projectId}-agent-code`
+
+  **Process:**
+  1. Receives file upload event
+  2. Updates agent metadata in Firebase Realtime Database
+  3. Creates Cloud Build configuration for backtesting
+  4. Submits build job
+  5. Updates status in database
+
+  ## Required Files
+
+  - `functions/submitAgent.js` - Main HTTP endpoint
+  - `functions/updateAgentMetadata.js` - Storage-triggered function
+  - `functions/authUtils.js` - Authentication middleware
+  - `functions/backtestBuildConfig.js` - Build configuration generator
+  - `functions/multipartFileUpload.js` - File upload middleware
+
+  ## Environment Setup
+
+  Required environment variables:
+  ```
+  GCLOUD_PROJECT={your-project-id}
+  ```
+
+  ## Database Structure
+
+  ```
+  agents/
+    {userId}/
+      {agentId}/
+        - agentId
+        - userId
+        - timestamp
+        - numberOfFiles
+        - status: 'stored' | 'building' | 'completed' | 'failed'
+        - bucketName
+        - buildId (after build submission)
+  ```
