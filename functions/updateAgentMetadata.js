@@ -18,7 +18,7 @@ const db = admin.database();
 const cloudbuild = new CloudBuildClient();
 
 const PROJECT_ID = process.env.GCLOUD_PROJECT || process.env.PROJECT_ID;
-const BUCKET_NAME = `${PROJECT_ID}-agent-code`;
+const BUCKET_NAME = 'agents-2r5r6'; // Using existing storage bucket
 
 /**
  * Update Agent Metadata - Triggered when files uploaded to Cloud Storage

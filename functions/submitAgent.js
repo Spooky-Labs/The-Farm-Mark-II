@@ -4,7 +4,7 @@
  * Maintains backward compatibility with original implementation
  */
 
-const functions = require('firebase-functions');
+const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const express = require('express');
 const cors = require('cors');
@@ -20,7 +20,7 @@ if (!admin.apps.length) {
 const db = admin.database();
 const storage = new Storage();
 const PROJECT_ID = process.env.GCLOUD_PROJECT || process.env.PROJECT_ID;
-const BUCKET_NAME = `${PROJECT_ID}-agent-code`;
+const BUCKET_NAME = 'agents-2r5r6'; // Using existing storage bucket
 const bucket = storage.bucket(BUCKET_NAME);
 
 // Create Express app
@@ -103,5 +103,8 @@ app.post('/', multipartFileUpload, verifyIdToken, (req, res) => {
         });
 });
 
-// Export as Firebase Function
-exports.submitAgent = functions.https.onRequest(app);
+// Export as Firebase Function (Gen 2)
+exports.submitAgent = onRequest({
+    cors: true,
+    region: 'us-central1'
+}, app);
