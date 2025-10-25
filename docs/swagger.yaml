@@ -16,18 +16,10 @@ info:
     email: support@spookylabs.com
 
 servers:
-  - url: https://us-central1-{projectId}.cloudfunctions.net
-    description: Production
-    variables:
-      projectId:
-        default: your-project-id
-        description: Your Firebase project ID
-  - url: http://localhost:5001/{projectId}/us-central1
+  - url: https://submitagent-emedpldi5a-uc.a.run.app
+    description: Production (Gen 2 Cloud Function)
+  - url: http://localhost:5001/the-farm-neutrino-315cd/us-central1
     description: Local Firebase Emulator
-    variables:
-      projectId:
-        default: your-project-id
-        description: Your Firebase project ID
 
 tags:
   - name: Agent Submission
@@ -193,7 +185,7 @@ x-readme: |
   This is not a directly callable HTTP endpoint.
 
   **Trigger:** Cloud Storage `onObjectFinalized` event
-  **Bucket:** `{projectId}-agent-code`
+  **Bucket:** `the-farm-neutrino-315cd.firebasestorage.app`
 
   **Process:**
   1. Receives file upload event
@@ -214,7 +206,7 @@ x-readme: |
 
   Required environment variables:
   ```
-  GCLOUD_PROJECT={your-project-id}
+  GCLOUD_PROJECT=the-farm-neutrino-315cd
   ```
 
   ## Database Structure

@@ -4,12 +4,16 @@ A minimal Firebase Functions service for submitting and processing trading agent
 
 ## Overview
 
-This service provides a single API endpoint for uploading Python trading strategy files. When files are uploaded, they are stored in Cloud Storage and automatically trigger a backtesting pipeline.
+This service provides API endpoints for managing trading agents and broker accounts:
+- Upload Python trading strategy files
+- Create Alpaca broker accounts for trading
+- Automatically trigger backtesting pipelines
+- Support for both JavaScript and Python functions
 
 ## Architecture
 
 ```
-functions/
+functions/                       # JavaScript functions
 ├── index.js                     # Entry point
 ├── submitAgent.js               # HTTP endpoint for file uploads
 ├── updateAgentMetadata.js       # Storage-triggered backtesting
@@ -17,11 +21,16 @@ functions/
     ├── authUtils.js            # Firebase authentication
     ├── multipartFileUpload.js  # File upload handling
     └── backtestBuildConfig.js  # Cloud Build configuration
+
+python-functions/                # Python functions
+├── main.py                      # Entry point for Python functions
+├── create_account.py            # Alpaca account registration
+└── requirements.txt             # Python dependencies
 ```
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 20+ (Node.js 18 is deprecated as of April 2025)
 - Firebase CLI (`npm install -g firebase-tools`)
 - Google Cloud Project with billing enabled
 - Firebase Authentication enabled
@@ -49,22 +58,19 @@ cd ..
 firebase login
 
 # Set your project ID
-firebase use YOUR-PROJECT-ID
+firebase use the-farm-neutrino-315cd
 
 # Or update .firebaserc manually
 ```
 
-### 3. Create Storage Bucket
+### 3. Storage Bucket Configuration
 
-The service requires this Cloud Storage bucket:
-- `YOUR-PROJECT-ID-agent-code` - For storing uploaded agent files
+The service uses Firebase Storage default bucket:
+- `the-farm-neutrino-315cd.firebasestorage.app` - For all storage operations
 
-```bash
-# Create bucket via gsutil
-gsutil mb gs://YOUR-PROJECT-ID-agent-code
-```
+This bucket is automatically created when you initialize Firebase Storage. No additional bucket creation is needed.
 
-Note: Backtest results are stored in Firebase Realtime Database, not in a separate storage bucket.
+Note: Backtest results are stored in Firebase Realtime Database.
 
 ## Deployment
 
@@ -81,6 +87,12 @@ This deploys:
 - Database rules
 - Storage rules
 
+Firebase Storage is initialized with the default bucket: `the-farm-neutrino-315cd.firebasestorage.app`
+
+This single bucket handles all storage operations:
+- Backend operations via Admin SDK in Cloud Functions
+- Client-side operations via Firebase SDK with security rules
+
 ### Deploy Only Functions
 
 ```bash
@@ -90,15 +102,26 @@ firebase deploy --only functions
 firebase deploy --only functions:submitAgent,functions:updateAgentMetadata
 ```
 
-## API Endpoint
+## API Endpoints
 
-After deployment, your API will be available at:
+### JavaScript Functions
 
-```
-https://us-central1-YOUR-PROJECT-ID.cloudfunctions.net/submitAgent
-```
+#### Submit Agent
+- **URL**: `https://submitagent-emedpldi5a-uc.a.run.app`
+- **Method**: POST
+- **Purpose**: Upload trading strategy files
 
-### Submit Agent
+### Python Functions
+
+#### Register Alpaca Account
+- **URL**: Available after deployment (check logs)
+- **Method**: POST
+- **Purpose**: Create Alpaca broker accounts
+- **Docs**: See `docs/CREATE_ACCOUNT_FUNCTION.md`
+
+Note: These are Gen 2 Cloud Function URLs. Exact URLs are shown in deployment output.
+
+### Submit Agent (Detailed)
 
 **Request:**
 - Method: `POST`
@@ -126,7 +149,7 @@ formData.append('files', agentFile2);
 
 const idToken = await firebase.auth().currentUser.getIdToken();
 
-const response = await fetch('https://us-central1-YOUR-PROJECT-ID.cloudfunctions.net/submitAgent', {
+const response = await fetch('https://submitagent-emedpldi5a-uc.a.run.app', {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${idToken}`
@@ -194,7 +217,7 @@ For detailed emulator instructions, see `docs/RUN_EMULATOR.md`.
 ```bash
 # Test with cURL
 curl -X POST \
-  http://localhost:5001/YOUR-PROJECT-ID/us-central1/submitAgent \
+  http://localhost:5001/the-farm-neutrino-315cd/us-central1/submitAgent \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -F "files=@test-agent.py"
 ```
@@ -227,7 +250,7 @@ firebase functions:log --only submitAgent
 
 Monitor your functions at:
 ```
-https://console.cloud.google.com/functions/list?project=YOUR-PROJECT-ID
+https://console.cloud.google.com/functions/list?project=the-farm-neutrino-315cd
 ```
 
 ## Security

@@ -34,13 +34,12 @@ This will start:
 
 ```bash
 curl -X POST \
-  http://localhost:5001/YOUR-PROJECT-ID/us-central1/submitAgent \
+  http://localhost:5001/the-farm-neutrino-315cd/us-central1/submitAgent \
   -H "Authorization: Bearer TOKEN_FROM_AUTH_TAB" \
   -F "files=@any-python-file.py"
 ```
 
 Replace:
-- `YOUR-PROJECT-ID` with your actual project ID
 - `TOKEN_FROM_AUTH_TAB` with the token from the authenticated user
 - `any-python-file.py` with your test file
 

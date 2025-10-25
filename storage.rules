@@ -1,21 +1,10 @@
 rules_version = '2';
+
+// Craft rules based on data in your Firestore database
+// allow write: if firestore.get(
+//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow users to upload their own agent code
-    match /agents/{userId}/{agentId}/{filename} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && request.auth.uid == userId
-                   && filename.matches('.*\\.py$')
-                   && request.resource.size < 10 * 1024 * 1024; // 10MB limit
-    }
-
-    // Allow reading backtest results for own agents
-    match /backtest-results/{userId}/{agentId}/{filename} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if false; // Only Cloud Functions can write
-    }
-
-    // Deny all other access
     match /{allPaths=**} {
       allow read, write: if false;
     }

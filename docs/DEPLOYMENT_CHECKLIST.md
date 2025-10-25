@@ -4,7 +4,7 @@
 
 - [ ] **Update .firebaserc** with your actual project ID
   ```bash
-  firebase use YOUR-PROJECT-ID
+  firebase use the-farm-neutrino-315cd
   ```
 
 - [ ] **Install dependencies**
@@ -18,11 +18,11 @@
   - [ ] Cloud Build API
   - [ ] Firebase Realtime Database
 
-- [ ] **Create storage bucket**
+- [ ] **Verify Firebase Storage bucket exists**
   ```bash
-  gsutil mb gs://YOUR-PROJECT-ID-agent-code
+  gsutil ls gs://the-farm-neutrino-315cd.firebasestorage.app
   ```
-  Note: Only one bucket needed - backtest results go to Realtime Database
+  Note: The project uses a single Firebase Storage bucket for all operations
 
 - [ ] **Verify Firebase Authentication is enabled**
   - Go to Firebase Console → Authentication → Sign-in method
@@ -53,13 +53,13 @@
   ```
 
 - [ ] **Verify function URL**
-  - Should be: `https://us-central1-YOUR-PROJECT-ID.cloudfunctions.net/submitAgent`
+  - Should be: `https://submitagent-emedpldi5a-uc.a.run.app` (Gen 2 function URL)
 
 - [ ] **Test the endpoint**
   ```bash
   # Get a test token from Firebase Console or your app
   curl -X POST \
-    https://us-central1-YOUR-PROJECT-ID.cloudfunctions.net/submitAgent \
+    https://submitagent-emedpldi5a-uc.a.run.app \
     -H "Authorization: Bearer YOUR_ID_TOKEN" \
     -F "files=@test-file.py"
   ```
@@ -85,12 +85,12 @@
 ### If functions don't appear:
 1. Check `functions/index.js` exports both functions
 2. Verify `functions/package.json` exists
-3. Check Node version: `node --version` (should be 18+)
+3. Check Node version: `node --version` (should be 20+ as Node 18 is deprecated)
 
 ### If storage trigger doesn't fire:
-1. Verify bucket name matches pattern: `{projectId}-agent-code`
+1. Verify bucket name is correctly set to `the-farm-neutrino-315cd.firebasestorage.app` in both functions
 2. Check firebase-admin version in package.json (needs 9.7.0+)
-3. Ensure storage rules allow writes
+3. Ensure Firebase Storage is initialized and has proper permissions
 
 ## Ready to Deploy?
 

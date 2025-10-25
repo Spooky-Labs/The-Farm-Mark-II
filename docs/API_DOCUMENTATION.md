@@ -19,7 +19,7 @@ Submit Python trading agent files for backtesting.
 
 **Request:**
 - Method: `POST`
-- URL: `https://us-central1-YOUR-PROJECT-ID.cloudfunctions.net/submitAgent`
+- URL: `https://submitagent-emedpldi5a-uc.a.run.app`
 - Headers:
   - `Authorization: Bearer YOUR_FIREBASE_ID_TOKEN`
   - `Content-Type: multipart/form-data`
@@ -40,7 +40,7 @@ Submit Python trading agent files for backtesting.
 ### Example with cURL:
 ```bash
 curl -X POST \
-  https://us-central1-YOUR-PROJECT-ID.cloudfunctions.net/submitAgent \
+  https://submitagent-emedpldi5a-uc.a.run.app \
   -H "Authorization: Bearer YOUR_FIREBASE_ID_TOKEN" \
   -F "files=@agent.py" \
   -F "files=@config.py"
@@ -54,7 +54,7 @@ formData.append('files', agentFile2);
 
 const idToken = await firebase.auth().currentUser.getIdToken();
 
-const response = await fetch('https://us-central1-YOUR-PROJECT-ID.cloudfunctions.net/submitAgent', {
+const response = await fetch('https://submitagent-emedpldi5a-uc.a.run.app', {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${idToken}`
@@ -77,7 +77,7 @@ console.log('Agent ID:', result.agentId);
 ## Required Environment Variables
 
 ```bash
-GCLOUD_PROJECT=your-project-id
+GCLOUD_PROJECT=the-farm-neutrino-315cd
 ```
 
 ## Deployment Files

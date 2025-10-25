@@ -13,18 +13,18 @@ firebase projects:list
 
 You'll see output like:
 ```
-┌──────────────────────┬─────────────────────┬────────────────┐
-│ Project Display Name │ Project ID          │ Resource Loc   │
-├──────────────────────┼─────────────────────┼────────────────┤
-│ Spooky Trading       │ spooky-trading-123  │ us-central1    │
-└──────────────────────┴─────────────────────┴────────────────┘
+┌──────────────────────┬─────────────────────────┬────────────────┐
+│ Project Display Name │ Project ID              │ Resource Loc   │
+├──────────────────────┼─────────────────────────┼────────────────┤
+│ The Farm Neutrino    │ the-farm-neutrino-315cd │ us-central1    │
+└──────────────────────┴─────────────────────────┴────────────────┘
 ```
 
 ### Step 2: Set the Project
 
 ```bash
 # Use your actual project ID from the list above
-firebase use spooky-trading-123
+firebase use the-farm-neutrino-315cd
 ```
 
 This automatically updates `.firebaserc` with the correct project ID.
@@ -59,14 +59,14 @@ Your Firebase project ID must:
 
 ## Creating a New Project (If Needed)
 
-If you don't have a Firebase project yet:
+If you need to create a new Firebase project:
 
 ```bash
-# Create a new project
-firebase projects:create spooky-trading-123
+# Create a new project with a unique ID
+firebase projects:create your-unique-project-id
 
 # Then use it
-firebase use spooky-trading-123
+firebase use your-unique-project-id
 ```
 
 ## After Setting Project ID
@@ -78,10 +78,10 @@ Once you've set your project ID, you can:
    firebase deploy
    ```
 
-2. **Create your storage bucket:**
-   ```bash
-   gsutil mb gs://spooky-trading-123-agent-code
-   ```
+2. **Initialize Firebase Storage:**
+   - Go to https://console.firebase.google.com/project/the-farm-neutrino-315cd/storage
+   - Click "Get Started" if not already initialized
+   - This creates the default bucket: `the-farm-neutrino-315cd.firebasestorage.app`
 
 3. **Test locally:**
    ```bash

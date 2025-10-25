@@ -20,7 +20,7 @@ if (!admin.apps.length) {
 const db = admin.database();
 const storage = new Storage();
 const PROJECT_ID = process.env.GCLOUD_PROJECT || process.env.PROJECT_ID;
-const BUCKET_NAME = 'agents-2r5r6'; // Using existing storage bucket
+const BUCKET_NAME = 'the-farm-neutrino-315cd.firebasestorage.app'; // Using Firebase Storage default bucket
 const bucket = storage.bucket(BUCKET_NAME);
 
 // Create Express app
