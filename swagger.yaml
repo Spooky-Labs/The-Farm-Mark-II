@@ -1,0 +1,310 @@
+openapi: 3.0.3
+info:
+  title: The Farm Trading Agent API
+  description: |
+    Firebase Functions API for managing trading agents and their Alpaca brokerage accounts.
+
+    This API provides endpoints for:
+    - Submitting trading agent strategy files
+    - Creating Alpaca paper trading accounts
+    - Funding accounts for trading operations
+
+    All endpoints require Firebase Authentication via ID tokens.
+  version: 1.0.0
+  contact:
+    name: Spooky Labs
+    email: support@spookylabs.ai
+
+servers:
+  - url: https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net
+    description: Production Firebase Functions
+
+tags:
+  - name: Agent Management
+    description: Operations for managing trading agents
+  - name: Account Management
+    description: Operations for managing Alpaca trading accounts
+
+paths:
+  /submitAgent:
+    post:
+      tags:
+        - Agent Management
+      summary: Submit Trading Agent Files
+      description: |
+        Upload Python trading strategy files for a new agent.
+        Files are stored in Firebase Storage and trigger automatic metadata processing.
+      operationId: submitAgent
+      security:
+        - firebaseAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - files
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Python trading strategy files (.py)
+                  minItems: 1
+            encoding:
+              files:
+                contentType: application/octet-stream
+      responses:
+        '201':
+          description: Agent files successfully uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                    description: Unique identifier for the created agent
+                    example: "-NkXYZ123abc456def"
+                  timestamp:
+                    type: integer
+                    description: Unix timestamp of upload
+                    example: 1698255600000
+                  numberOfFiles:
+                    type: integer
+                    description: Number of files uploaded
+                    example: 3
+                  userId:
+                    type: string
+                    description: Firebase user ID of the uploader
+                    example: "uid123456789"
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /createAccount:
+    post:
+      tags:
+        - Account Management
+      summary: Create Alpaca Trading Account
+      description: |
+        Creates a new Alpaca paper trading account for an agent.
+        This sets up the account with placeholder KYC data and establishes an ACH relationship for funding.
+
+        **Note**: Uses hardcoded placeholder data for sandbox testing.
+      operationId: createAccount
+      security:
+        - firebaseAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - agentId
+              properties:
+                agentId:
+                  type: string
+                  description: The agent ID to create an account for
+                  example: "-NkXYZ123abc456def"
+      responses:
+        '200':
+          description: Account successfully created or already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  agentId:
+                    type: string
+                    example: "-NkXYZ123abc456def"
+                  userId:
+                    type: string
+                    example: "uid123456789"
+                  accountId:
+                    type: string
+                    description: Alpaca account UUID
+                    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  accountStatus:
+                    type: string
+                    description: Alpaca account status
+                    enum: [ACTIVE, PENDING, SUSPENDED]
+                    example: "ACTIVE"
+                  fundingStatus:
+                    type: string
+                    description: Account funding status
+                    enum: [PENDING, FUNDED]
+                    example: "PENDING"
+                  message:
+                    type: string
+                    description: Status message if account already exists
+                    example: "Agent status is account_registered"
+        '400':
+          description: Bad request - Missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Agent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Account registration failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /fundAccount:
+    post:
+      tags:
+        - Account Management
+      summary: Fund Alpaca Trading Account
+      description: |
+        Initiates a $25,000 ACH transfer to fund an existing Alpaca paper trading account.
+
+        Prerequisites:
+        - Account must be created via /createAccount endpoint
+        - ACH relationship must be established (happens during account creation)
+
+        The function checks if the account is already funded to prevent duplicate transfers.
+      operationId: fundAccount
+      security:
+        - firebaseAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - agentId
+              properties:
+                agentId:
+                  type: string
+                  description: The agent ID to fund the account for
+                  example: "-NkXYZ123abc456def"
+      responses:
+        '200':
+          description: Account successfully funded or already funded
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      success:
+                        type: boolean
+                        example: true
+                      transferId:
+                        type: string
+                        description: ACH transfer UUID
+                        example: "t1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                      amount:
+                        type: string
+                        description: Formatted transfer amount
+                        example: "$25,000.00"
+                      status:
+                        type: string
+                        enum: [COMPLETE]
+                        example: "COMPLETE"
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        description: Message if account is already funded
+                        example: "Account already funded"
+        '400':
+          description: Bad request - Various validation errors
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      error:
+                        type: string
+                        enum: [Missing request body, Missing agentId parameter, Agent has no linked Alpaca account, RELATIONSHIP_NOT_READY]
+                      message:
+                        type: string
+                        example: "The ACH relationship is still being processed. Please try again in a few minutes."
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Agent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Funding failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum: [FUNDING_FAILED]
+                  message:
+                    type: string
+                    description: Detailed error message from Alpaca API
+
+components:
+  securitySchemes:
+    firebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Firebase Authentication ID token.
+        Obtain via Firebase Auth client SDK.
+        Pass in Authorization header as: `Bearer <id-token>`
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Unauthorized request"
+        debug:
+          type: string
+          description: Additional debug information (when available)
+          example: "Token expired"
+
+security:
+  - firebaseAuth: []
+
+externalDocs:
+  description: Firebase Functions Documentation
+  url: https://firebase.google.com/docs/functions
