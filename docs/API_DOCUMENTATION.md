@@ -46,10 +46,12 @@ All HTTP endpoints require Firebase Authentication. Include the Firebase ID toke
 Authorization: Bearer <firebase-id-token>
 ```
 
-## Base URL
-```
-https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net
-```
+## Base URLs (Gen 2 Cloud Run)
+- **submitAgent**: `https://submitagent-emedpldi5a-uc.a.run.app`
+- **createAccount**: `https://createaccount-emedpldi5a-uc.a.run.app`
+- **fundAccount**: `https://fundaccount-emedpldi5a-uc.a.run.app`
+
+Note: All functions now use Gen 2 Cloud Run infrastructure with individual URLs.
 
 ## API Workflow
 
@@ -62,7 +64,7 @@ https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net
 
 #### 1. Submit Agent Files
 ```bash
-curl -X POST https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net/submitAgent \
+curl -X POST https://submitagent-emedpldi5a-uc.a.run.app \
   -H "Authorization: Bearer YOUR_FIREBASE_TOKEN" \
   -F "files=@strategy.py" \
   -F "files=@config.py"
@@ -70,7 +72,7 @@ curl -X POST https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net/subm
 
 #### 2. Create Alpaca Account
 ```bash
-curl -X POST https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net/createAccount \
+curl -X POST https://createaccount-emedpldi5a-uc.a.run.app \
   -H "Authorization: Bearer YOUR_FIREBASE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"agentId": "YOUR_AGENT_ID"}'
@@ -78,7 +80,7 @@ curl -X POST https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net/crea
 
 #### 3. Fund the Account
 ```bash
-curl -X POST https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net/fundAccount \
+curl -X POST https://fundaccount-emedpldi5a-uc.a.run.app \
   -H "Authorization: Bearer YOUR_FIREBASE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"agentId": "YOUR_AGENT_ID"}'

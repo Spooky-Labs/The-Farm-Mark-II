@@ -21,7 +21,14 @@ except ValueError:
 
 logger = logging.getLogger("cloud_functions")
 
-@https_fn.on_request(secrets=["ALPACA_BROKER_API_KEY", "ALPACA_BROKER_SECRET_KEY"], cors=options.CorsOptions(cors_origins=["*"], cors_methods=["post", "options"]))
+@https_fn.on_request(
+    secrets=["ALPACA_BROKER_API_KEY", "ALPACA_BROKER_SECRET_KEY"],
+    cors=options.CorsOptions(cors_origins=["*"], cors_methods=["post", "options"]),
+    max_instances=100,  # Gen 2 configuration
+    memory=options.MemoryOption.MB_256,  # Gen 2 memory option
+    cpu=1,  # Gen 2 CPU allocation
+    region="us-central1"  # Explicit region for Gen 2
+)
 def fundAccount(req: https_fn.Request) -> https_fn.Response:
     """Fund an existing Alpaca paper trading account using just agent_id."""
     try:

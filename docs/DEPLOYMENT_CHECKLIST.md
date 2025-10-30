@@ -69,13 +69,13 @@
   firebase functions:list
   ```
 
-- [ ] **Verify function URLs**
+- [ ] **Verify function URLs (All Gen 2 Cloud Run)**
   - JavaScript functions:
     - submitAgent: `https://submitagent-emedpldi5a-uc.a.run.app`
     - updateAgentMetadata: (Storage trigger, no URL)
   - Python functions:
-    - createAccount: `https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net/createAccount`
-    - fundAccount: `https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net/fundAccount`
+    - createAccount: `https://createaccount-emedpldi5a-uc.a.run.app`
+    - fundAccount: `https://fundaccount-emedpldi5a-uc.a.run.app`
 
 - [ ] **Test the endpoint**
   ```bash

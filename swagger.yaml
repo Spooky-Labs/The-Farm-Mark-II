@@ -4,6 +4,10 @@ info:
   description: |
     Firebase Functions API for managing trading agents and their Alpaca brokerage accounts.
 
+    **Note**: All functions use Gen 2 Cloud Run infrastructure. The path shown in the documentation
+    (e.g., /createAccount) is for clarity - the actual request should be made to the root path (/)
+    of each function's unique URL.
+
     This API provides endpoints for:
     - Submitting trading agent strategy files
     - Creating Alpaca paper trading accounts
@@ -16,8 +20,12 @@ info:
     email: support@spookylabs.ai
 
 servers:
-  - url: https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net
-    description: Production Firebase Functions
+  - url: https://submitagent-emedpldi5a-uc.a.run.app
+    description: submitAgent endpoint (Gen 2)
+  - url: https://createaccount-emedpldi5a-uc.a.run.app
+    description: createAccount endpoint (Gen 2)
+  - url: https://fundaccount-emedpldi5a-uc.a.run.app
+    description: fundAccount endpoint (Gen 2)
 
 tags:
   - name: Agent Management
@@ -26,8 +34,11 @@ tags:
     description: Operations for managing Alpaca trading accounts
 
 paths:
-  /submitAgent:
+  /:
     post:
+      servers:
+        - url: https://submitagent-emedpldi5a-uc.a.run.app
+          description: submitAgent endpoint
       tags:
         - Agent Management
       summary: Submit Trading Agent Files
@@ -95,6 +106,9 @@ paths:
 
   /createAccount:
     post:
+      servers:
+        - url: https://createaccount-emedpldi5a-uc.a.run.app
+          description: createAccount Gen 2 endpoint
       tags:
         - Account Management
       summary: Create Alpaca Trading Account
@@ -181,6 +195,9 @@ paths:
 
   /fundAccount:
     post:
+      servers:
+        - url: https://fundaccount-emedpldi5a-uc.a.run.app
+          description: fundAccount Gen 2 endpoint
       tags:
         - Account Management
       summary: Fund Alpaca Trading Account
