@@ -1,120 +1,126 @@
-# API Documentation - Trading Agent Submission
+# The Farm Trading Agent API Documentation
 
 ## Overview
+This repository contains OpenAPI/Swagger documentation for the Firebase Functions that power The Farm Trading Agent platform.
 
-Simple API for submitting trading agent code for automated backtesting.
+## API Specification
+- **`swagger.yaml`** - OpenAPI 3.0.3 specification file containing complete API documentation
 
-## Files
+## Available Endpoints
 
-- **`swagger.yaml`** - OpenAPI 3.0 specification
-- **`swagger-ui.html`** - Interactive documentation viewer
+### HTTP Endpoints
+1. **POST /submitAgent** - Upload trading strategy files
+2. **POST /createAccount** - Create Alpaca paper trading account
+3. **POST /fundAccount** - Fund Alpaca account with $25,000
 
-## The API Endpoint
-
-### POST `/submitAgent`
-
-Submit Python trading agent files for backtesting.
-
-**Authentication Required:** Yes (Firebase ID Token)
-
-**Request:**
-- Method: `POST`
-- URL: `https://submitagent-emedpldi5a-uc.a.run.app`
-- Headers:
-  - `Authorization: Bearer YOUR_FIREBASE_ID_TOKEN`
-  - `Content-Type: multipart/form-data`
-- Body: Form data with Python files (max 10MB per file)
-
-**Response (201 Created):**
-```json
-{
-  "agentId": "-NjKlMnOpQrStUvWxYz",
-  "timestamp": 1699123456789,
-  "numberOfFiles": 2,
-  "userId": "uid123"
-}
-```
-
-## Testing
-
-### Example with cURL:
-```bash
-curl -X POST \
-  https://submitagent-emedpldi5a-uc.a.run.app \
-  -H "Authorization: Bearer YOUR_FIREBASE_ID_TOKEN" \
-  -F "files=@agent.py" \
-  -F "files=@config.py"
-```
-
-### Example with JavaScript:
-```javascript
-const formData = new FormData();
-formData.append('files', agentFile1);
-formData.append('files', agentFile2);
-
-const idToken = await firebase.auth().currentUser.getIdToken();
-
-const response = await fetch('https://submitagent-emedpldi5a-uc.a.run.app', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${idToken}`
-  },
-  body: formData
-});
-
-const result = await response.json();
-console.log('Agent ID:', result.agentId);
-```
-
-## What Happens After Submission
-
-1. **Files uploaded** to Cloud Storage bucket
-2. **Storage trigger** fires the `updateAgentMetadata` function
-3. **Metadata saved** to Firebase Realtime Database
-4. **Cloud Build** job triggered for backtesting
-5. **Results stored** when backtesting completes
-
-## Required Environment Variables
-
-```bash
-GCLOUD_PROJECT=the-farm-neutrino-315cd
-```
-
-## Deployment Files
-
-Core files needed for deployment:
-
-```
-functions/
-├── index.js                     # Entry point
-├── submitAgent.js               # Main HTTP endpoint
-├── updateAgentMetadata.js       # Storage-triggered function
-└── utils/
-    ├── authUtils.js            # Authentication middleware
-    ├── multipartFileUpload.js  # File upload handler
-    └── backtestBuildConfig.js  # Cloud Build configuration
-```
+### Storage Triggers (Not in Swagger)
+- **updateAgentMetadata** - Automatically triggered when files are uploaded to Firebase Storage
 
 ## Viewing the Documentation
 
-### Option 1: Standalone Version (No Server Needed)
-Open `swagger-ui-standalone.html` directly in your browser:
-- Just double-click the file
-- Works offline, spec is embedded in the HTML
+### Option 1: Swagger Editor (Recommended)
+1. Go to https://editor.swagger.io/
+2. Copy the contents of `swagger.yaml`
+3. Paste into the editor
+4. View the interactive documentation on the right panel
 
-### Option 2: Local Server Version (References YAML)
-This version loads the `swagger.yaml` file dynamically:
+### Option 2: Swagger UI Online
+1. Go to https://petstore.swagger.io/
+2. Enter the URL to your raw `swagger.yaml` file
+3. Click "Explore"
 
-```bash
-cd docs
-./serve.sh
-# Opens at: http://localhost:8080/swagger-ui-local.html
+### Option 3: VS Code Extension
+Install the "Swagger Viewer" or "OpenAPI (Swagger) Editor" extension in VS Code to preview `swagger.yaml` directly
+
+### Option 4: Import to API Tools
+The `swagger.yaml` file can be imported into:
+- Postman (Import → File → Upload `swagger.yaml`)
+- Insomnia (Import → From File → Select `swagger.yaml`)
+- Stoplight Studio
+- ReadMe.io
+- Any OpenAPI-compatible tool
+
+## Authentication
+All HTTP endpoints require Firebase Authentication. Include the Firebase ID token in the Authorization header:
+```
+Authorization: Bearer <firebase-id-token>
 ```
 
-### Option 3: GitHub Version (If Your Repo is Public)
-1. Edit `swagger-ui-github.html`
-2. Replace `YOUR-GITHUB-USERNAME` and `YOUR-REPO-NAME`
-3. Open the file in your browser (no server needed)
+## Base URL
+```
+https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net
+```
 
-### Option 4: Online Tools
-- Copy contents of `swagger.yaml` to https://editor.swagger.io
+## API Workflow
+
+### Creating and Funding an Agent Account
+1. **Submit Agent** → Upload trading strategy files
+2. **Create Account** → Set up Alpaca paper trading account
+3. **Fund Account** → Add $25,000 to the account
+
+### Example Usage
+
+#### 1. Submit Agent Files
+```bash
+curl -X POST https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net/submitAgent \
+  -H "Authorization: Bearer YOUR_FIREBASE_TOKEN" \
+  -F "files=@strategy.py" \
+  -F "files=@config.py"
+```
+
+#### 2. Create Alpaca Account
+```bash
+curl -X POST https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net/createAccount \
+  -H "Authorization: Bearer YOUR_FIREBASE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"agentId": "YOUR_AGENT_ID"}'
+```
+
+#### 3. Fund the Account
+```bash
+curl -X POST https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net/fundAccount \
+  -H "Authorization: Bearer YOUR_FIREBASE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"agentId": "YOUR_AGENT_ID"}'
+```
+
+## Response Formats
+
+### Success Response Example
+```json
+{
+  "success": true,
+  "agentId": "-NkXYZ123abc456def",
+  "accountId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "accountStatus": "ACTIVE"
+}
+```
+
+### Error Response Example
+```json
+{
+  "error": "Agent not found",
+  "debug": "No agent with ID -NkXYZ123abc456def exists"
+}
+```
+
+## Environment
+- **Runtime**: Firebase Functions Gen 2
+- **Regions**: us-central1
+- **Languages**: Node.js 20, Python 3.12
+- **Storage**: Firebase Storage (default bucket)
+- **Database**: Firebase Realtime Database
+
+## Security Notes
+- All endpoints require valid Firebase Authentication
+- The createAccount function uses hardcoded placeholder data for sandbox testing
+- ACH transfers are simulated in the Alpaca sandbox environment
+- Secrets are managed via Firebase Secret Manager
+
+## Validation
+The `swagger.yaml` file follows OpenAPI 3.0.3 specification standards. To validate:
+- Use the Swagger Editor (https://editor.swagger.io/) - it will show validation errors
+- Use online validators like https://apitools.dev/swagger-parser/online/
+
+## Support
+For issues or questions, contact support@spookylabs.ai

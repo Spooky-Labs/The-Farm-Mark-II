@@ -9,7 +9,16 @@
 
 - [ ] **Install dependencies**
   ```bash
+  # JavaScript functions
   cd functions && npm install && cd ..
+
+  # Python functions
+  cd python-functions
+  python3.12 -m venv venv
+  source venv/bin/activate  # On Windows: venv\Scripts\activate
+  pip install -r requirements.txt
+  deactivate
+  cd ..
   ```
 
 - [ ] **Enable required APIs in Google Cloud Console**
@@ -17,6 +26,7 @@
   - [ ] Cloud Storage API
   - [ ] Cloud Build API
   - [ ] Firebase Realtime Database
+  - [ ] Secret Manager API (for Alpaca API keys)
 
 - [ ] **Verify Firebase Storage bucket exists**
   ```bash
@@ -27,6 +37,13 @@
 - [ ] **Verify Firebase Authentication is enabled**
   - Go to Firebase Console → Authentication → Sign-in method
   - Enable at least one provider (e.g., Email/Password)
+
+- [ ] **Set up Firebase Secrets (for Python functions)**
+  ```bash
+  # Required for Alpaca integration
+  firebase functions:secrets:set ALPACA_BROKER_API_KEY
+  firebase functions:secrets:set ALPACA_BROKER_SECRET_KEY
+  ```
 
 ## Deployment
 
@@ -49,11 +66,16 @@
 
 - [ ] **Check function deployment**
   ```bash
-  firebase functions:log --limit 10
+  firebase functions:list
   ```
 
-- [ ] **Verify function URL**
-  - Should be: `https://submitagent-emedpldi5a-uc.a.run.app` (Gen 2 function URL)
+- [ ] **Verify function URLs**
+  - JavaScript functions:
+    - submitAgent: `https://submitagent-emedpldi5a-uc.a.run.app`
+    - updateAgentMetadata: (Storage trigger, no URL)
+  - Python functions:
+    - createAccount: `https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net/createAccount`
+    - fundAccount: `https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net/fundAccount`
 
 - [ ] **Test the endpoint**
   ```bash
@@ -83,9 +105,11 @@
 4. Run with debug: `firebase deploy --debug`
 
 ### If functions don't appear:
-1. Check `functions/index.js` exports both functions
-2. Verify `functions/package.json` exists
-3. Check Node version: `node --version` (should be 20+ as Node 18 is deprecated)
+1. For JavaScript: Check `functions/index.js` exports all functions
+2. For Python: Check `python-functions/main.py` imports all functions
+3. Verify both `functions/package.json` and `python-functions/requirements.txt` exist
+4. Check Node version: `node --version` (should be 20+)
+5. Check Python version: `python3.12 --version` (should be 3.12+)
 
 ### If storage trigger doesn't fire:
 1. Verify bucket name is correctly set to `the-farm-neutrino-315cd.firebasestorage.app` in both functions
