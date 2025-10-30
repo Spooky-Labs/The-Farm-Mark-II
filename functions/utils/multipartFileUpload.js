@@ -71,6 +71,6 @@ exports.multipartFileUpload = function (req, res, next) {
     });
 
     busboy.on("error", next);
-
-    req.pipe(busboy);
+    
+    busboy.end(req.rawBody);
 };
