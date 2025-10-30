@@ -25,30 +25,34 @@ const BUCKET_NAME = 'the-farm-neutrino-315cd.firebasestorage.app'; // Using Fire
  * Automatically starts backtesting via Cloud Build
  */
 exports.updateAgentMetadata = onObjectFinalized({ bucket: BUCKET_NAME }, (event) => {
-    console.log('Storage event triggered:', event);
+    logger.log('Storage event triggered:', event);
 
     const userId = event.data.metadata.userId;
     const agentId = event.data.metadata.agentId;
-    const filePath = event.data.name;
-    const numberOfFiles = event.data.metadata.numberOfFiles;
-    const originalName = event.data.metadata.originalName;
+    const path = event.data.name;
+
+    logger.log(userId)
+    logger.log(agentId)
+    logger.log(path)
+
 
     // Create metadata object
     const metadata = {
         agentId: agentId,
         userId: userId,
         contentType: event.data.contentType,
-        numberOfFiles: numberOfFiles,
+        numberOfFiles: event.data.metadata.numberOfFiles,
         timeCreated: event.data.timeCreated,
-        originalName: originalName,
-        status: 'stored',
-        bucketName: BUCKET_NAME
+        originalName: event.data.metadata.originalName,
+        status: 'stored'
     };
+
+    console.log(metadata)
 
     // Store in both database locations for backward compatibility
     const updates = {};
     updates[`agents/${userId}/${agentId}`] = metadata;
-    updates[`users/${userId}/agents/${agentId}`] = metadata;
+    updates[`creators/${userId}/agents/${agentId}`] = metadata;
 
     return db.ref()
         .update(updates)
@@ -82,8 +86,8 @@ exports.updateAgentMetadata = onObjectFinalized({ bucket: BUCKET_NAME }, (event)
             const buildUpdates = {};
             buildUpdates[`agents/${userId}/${agentId}/buildId`] = buildId;
             buildUpdates[`agents/${userId}/${agentId}/status`] = 'building';
-            buildUpdates[`users/${userId}/agents/${agentId}/buildId`] = buildId;
-            buildUpdates[`users/${userId}/agents/${agentId}/status`] = 'building';
+            buildUpdates[`creators/${userId}/agents/${agentId}/buildId`] = buildId;
+            buildUpdates[`creators/${userId}/agents/${agentId}/status`] = 'building';
 
             return db.ref().update(buildUpdates);
         })
@@ -94,8 +98,8 @@ exports.updateAgentMetadata = onObjectFinalized({ bucket: BUCKET_NAME }, (event)
             const errorUpdates = {};
             errorUpdates[`agents/${userId}/${agentId}/status`] = 'failed';
             errorUpdates[`agents/${userId}/${agentId}/error`] = error.message;
-            errorUpdates[`users/${userId}/agents/${agentId}/status`] = 'failed';
-            errorUpdates[`users/${userId}/agents/${agentId}/error`] = error.message;
+            errorUpdates[`creators/${userId}/agents/${agentId}/status`] = 'failed';
+            errorUpdates[`creators/${userId}/agents/${agentId}/error`] = error.message;
 
             return db.ref().update(errorUpdates);
         });
