@@ -24,7 +24,10 @@ const BUCKET_NAME = 'the-farm-neutrino-315cd.firebasestorage.app'; // Using Fire
  * Update Agent Metadata - Triggered when files uploaded to Cloud Storage
  * Automatically starts backtesting via Cloud Build
  */
-exports.updateAgentMetadata = onObjectFinalized({ bucket: BUCKET_NAME }, (event) => {
+exports.updateAgentMetadata = onObjectFinalized({
+    bucket: BUCKET_NAME,
+    region: 'us-central1'
+}, (event) => {
     logger.log('Storage event triggered:', event);
 
     const userId = event.data.metadata.userId;
@@ -67,8 +70,9 @@ exports.updateAgentMetadata = onObjectFinalized({ bucket: BUCKET_NAME }, (event)
 
             logger.log(`Starting backtest build for agent ${agentId}`);
 
-            // Submit build to Cloud Build
+            // Submit build to Cloud Build in us-central1
             return cloudbuild.createBuild({
+                parent: `projects/${PROJECT_ID}/locations/us-central1`,
                 projectId: PROJECT_ID,
                 build: buildConfig
             });
