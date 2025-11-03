@@ -1,30 +1,10 @@
 {
   "rules": {
-    "users": {
+    "creators": {
       "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid",
-        "agents": {
-          "$agentId": {
-            ".validate": "newData.hasChildren(['agentId', 'userId', 'timestamp'])"
-          }
-        },
-        "accounts": {
-          "$agentId": {
-            ".validate": "newData.hasChildren(['accountId', 'agentId', 'userId'])"
-          }
-        }
+        ".read": "auth !== null && auth.uid === $uid",
+        ".write": false
       }
-    },
-    "paperTradingSessions": {
-      "$sessionId": {
-        ".read": "auth != null && root.child('paperTradingSessions').child($sessionId).child('userId').val() === auth.uid",
-        ".write": "auth != null && (!data.exists() || data.child('userId').val() === auth.uid)"
-      }
-    },
-    "leaderboard": {
-      ".read": true,
-      ".write": false
     }
   }
 }

@@ -53,9 +53,16 @@ def createAccount(req: https_fn.Request) -> https_fn.Response:
 
     try:
         # 1. Auth
-        id_token = req.headers.get('Authorization', '')
-        if not id_token:
+        auth_header = req.headers.get('Authorization', '')
+        if not auth_header:
             return https_fn.Response(json.dumps({"error": "Unauthorized request"}), status=401, content_type="application/json")
+
+        # Extract token from "Bearer <token>" format
+        if auth_header.startswith('Bearer '):
+            id_token = auth_header[7:]  # Remove "Bearer " prefix
+        else:
+            id_token = auth_header  # Use as-is if no Bearer prefix
+
         decoded_token = auth.verify_id_token(id_token)
         user_id = decoded_token['uid']
 
