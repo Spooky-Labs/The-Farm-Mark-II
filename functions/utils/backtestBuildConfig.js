@@ -111,7 +111,7 @@ function createBacktestBuildConfig(params) {
                   --rm \\
                   --network=none \\
                   --read-only \\
-                  --tmpfs /tmp:rw,noexec,nosuid,size=2g \\
+                  --tmpfs /tmp:rw,noexec,nosuid,size=2g \\ 
                   --security-opt no-new-privileges \\
                   --cap-drop ALL \\
                   -v /workspace:/workspace \\
