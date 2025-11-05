@@ -3,7 +3,7 @@
  * Minimal setup for agent submission and backtesting
  */
 
-// Import the two core functions
+// Import the core functions
 const { submitAgent } = require('./submitAgent');
 const { updateAgentMetadata } = require('./updateAgentMetadata');
 

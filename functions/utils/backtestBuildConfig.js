@@ -107,12 +107,19 @@ function createBacktestBuildConfig(params) {
                 args: [
                     '-c',
                     `set -e; set -o pipefail; \
+                 # Create a temporary directory for PyTorch
+                 mkdir -p /workspace/tmp && chmod 777 /workspace/tmp; \
                  docker run \\
                   --rm \\
                   --network=none \\
                   --read-only \\
+                  --tmpfs /tmp:rw,noexec,nosuid,size=1g \\
+                  --tmpfs /var/tmp:rw,noexec,nosuid,size=1g \\
                   --security-opt no-new-privileges \\
                   --cap-drop ALL \\
+                  -e TMPDIR=/tmp \\
+                  -e TEMP=/tmp \\
+                  -e TMP=/tmp \\
                   -v /workspace:/workspace \\
                   ${imageName} \\
                   > /workspace/output.json`
