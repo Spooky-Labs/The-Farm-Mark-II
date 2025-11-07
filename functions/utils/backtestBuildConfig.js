@@ -92,7 +92,7 @@ function createBacktestBuildConfig(params) {
                     '-t', imageName,
                     '--network=none',
                     '--no-cache',
-                    '--cap-drop=ALL',
+                    '--cap-drop ALL',
                     '--security-opt', 'no-new-privileges',
                     '.'  // Build context must be last
                 ],
