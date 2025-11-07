@@ -87,15 +87,7 @@ function createBacktestBuildConfig(params) {
             // Step 9: Build Docker image with agent code
             {
                 name: 'gcr.io/cloud-builders/docker',
-                args: [
-                    'build',
-                    '-t', imageName,
-                    '--network=none',
-                    '--no-cache',
-                    '--cap-drop ALL',
-                    '--security-opt', 'no-new-privileges',
-                    '.'  // Build context must be last
-                ],
+                args: ['build', '-t', imageName, '--network=none', '--no-cache','.'],
                 id: 'build-agent-test-image'
             },
             // Step 10: Run isolated backtest container
