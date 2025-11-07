@@ -96,17 +96,7 @@ function createBacktestBuildConfig(params) {
                 entrypoint: 'bash',
                 args: [
                     '-c',
-                    `set -e; set -o pipefail; \\
-                 docker run \\
-                  --rm \\
-                  --network=none \\
-                  --read-only \\
-                  --tmpfs /tmp:rw,noexec,nosuid,size=2g \\ 
-                  --security-opt no-new-privileges \\
-                  --cap-drop=ALL \\
-                  -v /workspace:/workspace \\
-                  ${imageName} \\
-                  > /workspace/output.json`
+                    `set -e; set -o pipefail; docker run --rm --network=none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=2g --security-opt no-new-privileges --cap-drop ALL -v /workspace:/workspace ${imageName} > /workspace/output.json`
                 ],
                 id: 'run-isolated-backtest',
             },
@@ -117,8 +107,7 @@ function createBacktestBuildConfig(params) {
                 entrypoint: 'bash',
                 args: [
                     '-c',
-                    `npm install -g firebase-tools && \\ 
-                    firebase database:update ${resultsPath} /workspace/output.json --project ${projectId} --force --debug`
+                    `npm install -g firebase-tools && firebase database:update ${resultsPath} /workspace/output.json --project ${projectId} --force --debug`
                 ],
                 id: 'write-results-rtdb-firebase-cli',
                 waitFor: ['run-isolated-backtest']
@@ -129,12 +118,7 @@ function createBacktestBuildConfig(params) {
                 entrypoint: 'bash',
                 args: [
                     '-c',
-                    `npm install -g firebase-tools && \\
-                    if [ -f /workspace/output.json ]; then
-                        firebase database:update "/creators/${userId}/agents/${agentId}" --data '{"status": "success", "completedAt": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"}' --project ${projectId} --force --non-interactive
-                    else
-                        firebase database:update "/creators/${userId}/agents/${agentId}" --data '{"status": "failed", "error": "Build failed - check logs", "completedAt": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"}' --project ${projectId} --force --non-interactive
-                    fi`
+                    `npm install -g firebase-tools && if [ -f /workspace/output.json ]; then firebase database:update "/creators/${userId}/agents/${agentId}" --data '{"status": "success", "completedAt": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"}' --project ${projectId} --force --non-interactive; else firebase database:update "/creators/${userId}/agents/${agentId}" --data '{"status": "failed", "error": "Build failed - check logs", "completedAt": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"}' --project ${projectId} --force --non-interactive; fi`
                 ],
                 id: 'update-build-success-failure',
                 waitFor: ['run-isolated-backtest']
