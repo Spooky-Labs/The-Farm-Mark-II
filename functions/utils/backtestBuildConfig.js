@@ -90,13 +90,11 @@ function createBacktestBuildConfig(params) {
                 args: [
                     'build',
                     '-t', imageName,
-                    '.'
-                ],
-                extra_args: [
                     '--network=none',
                     '--no-cache',
                     '--cap-drop=ALL',
                     '--security-opt', 'no-new-privileges',
+                    '.'  // Build context must be last
                 ],
                 id: 'build-agent-test-image'
             },
