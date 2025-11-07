@@ -22,69 +22,69 @@ function createBacktestBuildConfig(params) {
 
     return {
         steps: [
-            // Step 1: Clone Course-1 repository from GitHub
+            // Step 0: Clone Course-1 repository from GitHub
             {
                 name: 'gcr.io/cloud-builders/git',
                 args: ['clone', 'https://github.com/Spooky-Labs/Course-1.git'],
                 id: 'clone-course-1',
                 entrypoint: 'git', // Needed to prevent errors in subsequent steps
             },
-            // Step 2: Move Dockerfile to workspace
+            // Step 1: Move Dockerfile to workspace
             {
                 name: 'ubuntu',
                 args: ['-c', 'mv /workspace/Course-1/Dockerfile /workspace'],
                 id: 'move-dockerfile',
                 entrypoint: 'bash',
             },
-            // Step 3: Move requirements.txt to workspace
+            // Step 2: Move requirements.txt to workspace
             {
                 name: 'ubuntu',
                 args: ['-c', 'mv /workspace/Course-1/requirements.txt /workspace'],
                 id: 'move-requirements',
                 entrypoint: 'bash',
             },
-            // Step 4: Move runner.py to workspace
+            // Step 3: Move runner.py to workspace
             {
                 name: 'ubuntu',
                 args: ['-c', 'mv /workspace/Course-1/runner.py /workspace'],
                 id: 'move-runner',
                 entrypoint: 'bash',
             },
-            // Step 5: Move symbols.txt to workspace
+            // Step 4: Move symbols.txt to workspace
             {
                 name: 'ubuntu',
                 args: ['-c', 'mv /workspace/Course-1/symbols.txt /workspace'],
                 id: 'move-symbols',
                 entrypoint: 'bash',
             },
-            // Step 6: Create data directory
+            // Step 5: Create data directory
             {
                 name: 'ubuntu',
                 args: ['-c', 'mkdir -p /workspace/data'],
                 id: 'create-data-dir',
                 entrypoint: 'bash',
             },
-            // Step 7: Create output directory
+            // Step 6: Create output directory
             {
                 name: 'ubuntu',
                 entrypoint: 'mkdir',
                 args: ['-p', '/workspace/output'],
                 id: 'create-output-dir'
             },
-            // Step 8: Move data files to workspace
+            // Step 7: Move data files to workspace
             {
                 name: 'ubuntu',
                 args: ['-c', 'mv /workspace/Course-1/data/* /workspace/data'],
                 id: 'move-data',
                 entrypoint: 'bash',
             },
-            // Step 9: Copy agent code from Cloud Storage
+            // Step 8: Copy agent code from Cloud Storage
             {
                 name: 'gcr.io/cloud-builders/gsutil',
                 args: ['-m', 'cp', '-r', sourceLocation, '/workspace/agent'],
                 id: 'copy-agent-from-storage'
             },
-            // Step 10: Build Docker image with agent code
+            // Step 9: Build Docker image with agent code
             {
                 name: 'gcr.io/cloud-builders/docker',
                 args: [
@@ -98,7 +98,7 @@ function createBacktestBuildConfig(params) {
                 ],
                 id: 'build-agent-test-image'
             },
-            // Step 11: Run isolated backtest container
+            // Step 10: Run isolated backtest container
             {
                 name: 'gcr.io/cloud-builders/docker',
                 entrypoint: 'bash',
@@ -119,7 +119,7 @@ function createBacktestBuildConfig(params) {
                 id: 'run-isolated-backtest',
             },
 
-            // Step 12: Write backtest results to Realtime Database
+            // Step 11: Write backtest results to Realtime Database
             {
                 name: 'node:20',
                 entrypoint: 'bash',
@@ -131,7 +131,7 @@ function createBacktestBuildConfig(params) {
                 id: 'write-results-rtdb-firebase-cli',
                 waitFor: ['run-isolated-backtest']
             },
-            // Step 13: Write success message to database on success
+            // Step 12: Write success message to database on success
             {
                 name: 'node:20',
                 entrypoint: 'bash',
