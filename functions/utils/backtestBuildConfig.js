@@ -104,14 +104,14 @@ function createBacktestBuildConfig(params) {
                 entrypoint: 'bash',
                 args: [
                     '-c',
-                    `set -e; set -o pipefail; \
+                    `set -e; set -o pipefail; \\
                  docker run \\
                   --rm \\
                   --network=none \\
                   --read-only \\
                   --tmpfs /tmp:rw,noexec,nosuid,size=2g \\ 
                   --security-opt no-new-privileges \\
-                  --cap-drop ALL \\
+                  --cap-drop=ALL \\
                   -v /workspace:/workspace \\
                   ${imageName} \\
                   > /workspace/output.json`
