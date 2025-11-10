@@ -118,7 +118,12 @@ function createBacktestBuildConfig(params) {
                 entrypoint: 'bash',
                 args: [
                     '-c',
-                    `npm install -g firebase-tools && if [ -f /workspace/output.json ]; then firebase database:update "/creators/${userId}/agents/${agentId}" --data '{"status": "success", "completedAt": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"}' --project ${projectId} --force --non-interactive; else firebase database:update "/creators/${userId}/agents/${agentId}" --data '{"status": "failed", "error": "Build failed - check logs", "completedAt": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"}' --project ${projectId} --force --non-interactive; fi`
+                    `npm install -g firebase-tools && \\
+                    if [ -f /workspace/output.json ]; then
+                        firebase database:update "/creators/${userId}/agents/${agentId}" --data '{"status": "success", "completedAt": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"}' --project ${projectId} --force --non-interactive
+                    else
+                        firebase database:update "/creators/${userId}/agents/${agentId}" --data '{"status": "failed", "error": "Build failed - check logs", "completedAt": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"}' --project ${projectId} --force --non-interactive
+                    fi`
                 ],
                 id: 'update-build-success-failure',
                 waitFor: ['run-isolated-backtest']
@@ -130,6 +135,9 @@ function createBacktestBuildConfig(params) {
         timeout: {
             seconds: 1200,  // 20 minutes (or whatever duration you need)
             // nanos: 0, // Optional: Add nanoseconds if needed.
+        },
+        options: {
+            diskSizeGb: 100 // to support size of backtesting container (including whitelisted models from Hugging Face)
         }
     };
 }
