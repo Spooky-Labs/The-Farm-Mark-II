@@ -20,6 +20,9 @@ function createBacktestBuildConfig(params) {
     const sourceLocation = `gs://${bucketName}/agents/${userId}/${agentId}`;
     const resultsPath = `/creators/${userId}/agents/${agentId}/backtest`;
 
+    // HuggingFace model cache size - increase as model library grows
+    const CACHE_SIZE_GB = 20;
+
     return {
         steps: [
             // Step 0: Clone Course-1 repository from GitHub
@@ -90,13 +93,32 @@ function createBacktestBuildConfig(params) {
                 args: ['build', '-t', imageName, '--no-cache', '.'],
                 id: 'build-agent-test-image'
             },
-            // Step 10: Run isolated backtest container
+            // Step 10: Run isolated backtest container with read-only filesystem
+            // Security layers:
+            //   --network=none: No internet access (offline mode)
+            //   --read-only: Entire filesystem immutable
+            //   --tmpfs /tmp: Small writable temp space (2GB, no execution)
+            //   --tmpfs /home/appuser/.cache: Writable cache for HuggingFace lock files (configurable GB, NO execution)
+            //   --security-opt no-new-privileges: Prevents privilege escalation
+            //   --cap-drop ALL: Removes all Linux capabilities
+            //
+            // Why tmpfs for /home/appuser/.cache?
+            //   HuggingFace writes .lock files using flock() system calls when loading models
+            //   Models are copied here from /opt/models by entrypoint script
+            //   noexec is safe: Lock files don't execute code, they just use file locking syscalls
+            //   Size accommodates model cache + lock files + buffer (adjustable via CACHE_SIZE_GB)
             {
                 name: 'gcr.io/cloud-builders/docker',
                 entrypoint: 'bash',
                 args: [
                     '-c',
-                    `set -e; set -o pipefail; docker run --rm --network=none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=2g --security-opt no-new-privileges --cap-drop ALL -v /workspace:/workspace ${imageName} > /workspace/output.json`
+                    `set -e; set -o pipefail; docker run --rm --network=none --read-only \
+                     --tmpfs /tmp:rw,noexec,nosuid,size=2g \
+                     --tmpfs /home/appuser/.cache:rw,noexec,nosuid,size=${CACHE_SIZE_GB}g \
+                     --security-opt no-new-privileges \
+                     --cap-drop ALL \
+                     -v /workspace:/workspace \
+                     ${imageName} > /workspace/output.json`
                 ],
                 id: 'run-isolated-backtest',
             },
