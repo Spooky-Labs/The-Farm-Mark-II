@@ -34,7 +34,7 @@ The project uses Firebase's multiple codebases feature to support both languages
     {
       "source": "python-functions",
       "codebase": "python-functions",
-      "runtime": "python311"
+      "runtime": "python312"
     }
   ]
 }
@@ -42,14 +42,13 @@ The project uses Firebase's multiple codebases feature to support both languages
 
 ## Available Functions
 
-### JavaScript Functions (Production)
+### JavaScript Functions
 - `submitAgent` - HTTP endpoint for uploading trading strategies
-- `updateAgentMetadata` - Storage trigger for processing uploads
+- `updateAgentMetadata` - Storage trigger for processing uploads and starting backtests
 
-### Python Functions (Example)
-- `analyze_strategy` - HTTP endpoint for strategy analysis
-- `process_backtest_results` - Storage trigger for backtest processing
-- `health_check` - Simple health check endpoint
+### Python Functions
+- `createAccount` - HTTP endpoint for creating Alpaca paper trading accounts
+- `fundAccount` - HTTP endpoint for funding Alpaca accounts with $25,000
 
 ## Deployment Commands
 
@@ -86,22 +85,26 @@ firebase deploy --only functions:python-functions:analyze_strategy
 ### 1. Initialize Python Environment
 ```bash
 cd python-functions
-python3.11 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
 ### 2. Add New Python Functions
-Edit `python-functions/main.py` and add your functions:
+Create a new Python file in `python-functions/` directory (e.g., `your_function.py`), then import it in `main.py`:
 
 ```python
+# In your_function.py
 from firebase_functions import https_fn
 
 @https_fn.on_request(region="us-central1")
-def your_new_function(req: https_fn.Request) -> https_fn.Response:
+def yourNewFunction(req: https_fn.Request) -> https_fn.Response:
     # Your function logic here
     return https_fn.Response("Hello from Python!")
+
+# In main.py
+from your_function import yourNewFunction
 ```
 
 ### 3. Add Dependencies
@@ -137,9 +140,8 @@ After deployment, your functions will be available at:
 - `updateAgentMetadata`: (Storage trigger, no URL)
 
 ### Python Functions (Gen 2)
-- `analyze_strategy`: https://analyzestategy-[hash]-uc.a.run.app
-- `health_check`: https://healthcheck-[hash]-uc.a.run.app
-- `process_backtest_results`: (Storage trigger, no URL)
+- `createAccount`: https://createaccount-emedpldi5a-uc.a.run.app
+- `fundAccount`: https://fundaccount-emedpldi5a-uc.a.run.app
 
 ## Benefits of Multi-Language Setup
 
@@ -186,17 +188,19 @@ firebase functions:log --only python-functions
 ## Important Notes
 
 1. **Node.js Version**: Updated to Node.js 20 (from deprecated Node.js 18)
-2. **Python Version**: Using Python 3.11 (supports 3.10-3.13)
+2. **Python Version**: Using Python 3.12 (supports 3.10-3.13)
 3. **Bucket Name**: Both JS and Python functions use the same Firebase Storage bucket
 4. **Docker Required**: Python functions require Docker for local emulation
 5. **Deployment Time**: First Python deployment may take longer due to environment setup
+6. **Secrets**: Python functions require ALPACA_BROKER_API_KEY and ALPACA_BROKER_SECRET_KEY secrets
 
 ## Troubleshooting
 
 ### Python Functions Not Deploying
-- Ensure Docker is installed and running
+- Ensure Docker is installed and running (only needed for local emulation)
 - Check `requirements.txt` is in the same directory as `main.py`
 - Verify Python version compatibility (3.10-3.13)
+- Ensure Firebase secrets are set: `firebase functions:secrets:set ALPACA_BROKER_API_KEY`
 
 ### Import Errors in Python
 - Run `pip freeze > requirements.txt` after installing new packages

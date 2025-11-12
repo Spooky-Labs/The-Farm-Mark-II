@@ -70,6 +70,10 @@
   ```
 
 - [ ] **Verify function URLs (All Gen 2 Cloud Run)**
+  ```bash
+  firebase functions:list
+  ```
+  Expected functions:
   - JavaScript functions:
     - submitAgent: `https://submitagent-emedpldi5a-uc.a.run.app`
     - updateAgentMetadata: (Storage trigger, no URL)
@@ -106,15 +110,25 @@
 
 ### If functions don't appear:
 1. For JavaScript: Check `functions/index.js` exports all functions
+   ```javascript
+   exports.submitAgent = require('./submitAgent').submitAgent;
+   exports.updateAgentMetadata = require('./updateAgentMetadata').updateAgentMetadata;
+   ```
 2. For Python: Check `python-functions/main.py` imports all functions
+   ```python
+   from create_account import createAccount
+   from fund_account import fundAccount
+   ```
 3. Verify both `functions/package.json` and `python-functions/requirements.txt` exist
 4. Check Node version: `node --version` (should be 20+)
 5. Check Python version: `python3.12 --version` (should be 3.12+)
 
 ### If storage trigger doesn't fire:
-1. Verify bucket name is correctly set to `the-farm-neutrino-315cd.firebasestorage.app` in both functions
+1. Verify bucket name is correctly set to `the-farm-neutrino-315cd.firebasestorage.app` in updateAgentMetadata.js
 2. Check firebase-admin version in package.json (needs 9.7.0+)
 3. Ensure Firebase Storage is initialized and has proper permissions
+4. Check that metadata is being set correctly in submitAgent.js (userId, agentId fields)
+5. Review logs: `firebase functions:log --only updateAgentMetadata`
 
 ## Ready to Deploy?
 

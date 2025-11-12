@@ -114,7 +114,7 @@ function createBacktestBuildConfig(params) {
                     '-c',
                     `set -e; set -o pipefail; docker run --rm --network=none --read-only \
                      --tmpfs /tmp:rw,noexec,nosuid,size=2g \
-                     --tmpfs /home/appuser/.cache:rw,noexec,nosuid,size=${CACHE_SIZE_GB}g \
+                     --tmpfs /home/appuser/.cache:rw,noexec,nosuid,size=${CACHE_SIZE_GB}g,uid=1000,gid=1000 \
                      --security-opt no-new-privileges \
                      --cap-drop ALL \
                      -v /workspace:/workspace \
