@@ -155,11 +155,13 @@ function createBacktestBuildConfig(params) {
             imageName
         ],
         timeout: {
-            seconds: 1200,  // 20 minutes (or whatever duration you need)
+            seconds: 1800,  // 20 minutes (or whatever duration you need)
             // nanos: 0, // Optional: Add nanoseconds if needed.
         },
         options: {
-            diskSizeGb: 100 // to support size of backtesting container (including whitelisted models from Hugging Face)
+            machineType: 'c3-highcpu-22',
+            logging: 'CLOUD_LOGGING_ONLY',
+            diskSizeGb: 200 // to support size of backtesting container (including whitelisted models from Hugging Face)
         }
     };
 }
