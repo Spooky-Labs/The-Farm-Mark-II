@@ -159,7 +159,7 @@ function createBacktestBuildConfig(params) {
             // nanos: 0, // Optional: Add nanoseconds if needed.
         },
         options: {
-            machineType: 'N1_HIGHCPU_32',
+            machineType: 'E2_HIGHCPU_32',
             logging: 'CLOUD_LOGGING_ONLY',
             diskSizeGb: 200 // to support size of backtesting container (including whitelisted models from Hugging Face)
         }
