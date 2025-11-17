@@ -97,11 +97,16 @@ app.post('/', verifyIdToken, async (req, res) => {
             // Push container image to Google Container Registry
           },
           {
+            id: 'write-manifest',
+            name: 'bash',
+            args: ['-c', `cat > /workspace/deployment.yaml <<'EOF'\n${generateK8sManifest(normalizedAgentId, agentId, userId, alpacaAccountId)}\nEOF`]
+            // Write Kubernetes manifest to file
+          },
+          {
             id: 'deploy-to-gke',
             name: 'gcr.io/cloud-builders/kubectl',
             env: ['CLOUDSDK_COMPUTE_REGION=us-central1', 'CLOUDSDK_CONTAINER_CLUSTER=paper-trading-cluster'],
-            args: ['apply', '-f', '-'],
-            stdin: generateK8sManifest(normalizedAgentId, agentId, userId, alpacaAccountId)
+            args: ['apply', '-f', '/workspace/deployment.yaml']
             // Deploy to GKE Autopilot cluster in paper-trading namespace
           }
         ],
