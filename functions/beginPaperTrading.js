@@ -61,6 +61,12 @@ app.post('/', verifyIdToken, async (req, res) => {
       });
     }
 
+    // Get Alpaca account ID for trading
+    const alpacaAccountId = agentData.alpacaAccount?.id;
+    if (!alpacaAccountId) {
+      return res.status(400).json({ error: 'Alpaca account ID not found' });
+    }
+
     // Build and deploy
     const [operation] = await cloudbuild.createBuild({
       projectId,
@@ -95,7 +101,7 @@ app.post('/', verifyIdToken, async (req, res) => {
             name: 'gcr.io/cloud-builders/kubectl',
             env: ['CLOUDSDK_COMPUTE_REGION=us-central1', 'CLOUDSDK_CONTAINER_CLUSTER=paper-trading-cluster'],
             args: ['apply', '-f', '-'],
-            stdin: generateK8sManifest(normalizedAgentId, agentId, userId)
+            stdin: generateK8sManifest(normalizedAgentId, agentId, userId, alpacaAccountId)
             // Deploy to GKE Autopilot cluster in paper-trading namespace
           }
         ],
@@ -127,7 +133,7 @@ app.post('/', verifyIdToken, async (req, res) => {
   }
 });
 
-function generateK8sManifest(normalizedAgentId, agentId, userId) {
+function generateK8sManifest(normalizedAgentId, agentId, userId, alpacaAccountId) {
   return `
 apiVersion: apps/v1
 kind: Deployment
@@ -155,7 +161,24 @@ spec:
           value: "${agentId}"
         - name: USER_ID
           value: "${userId}"
+        - name: ALPACA_ACCOUNT_ID
+          value: "${alpacaAccountId}"
+        - name: ALPACA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: broker-paper-trading
+              key: api-key
+        - name: ALPACA_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: broker-paper-trading
+              key: secret-key
         - name: PROJECT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: trading-config
+              key: project_id
+        - name: GOOGLE_CLOUD_PROJECT
           valueFrom:
             configMapKeyRef:
               name: trading-config
