@@ -26,6 +26,8 @@ A minimal Firebase Functions service for submitting and processing trading agent
 This service provides API endpoints for managing trading agents and broker accounts:
 - Upload Python trading strategy files
 - Create Alpaca broker accounts for trading
+- Fund accounts with paper money
+- Deploy agents to GKE cluster for live paper trading
 - Automatically trigger backtesting pipelines
 - Support for both JavaScript and Python functions
 
@@ -36,6 +38,7 @@ functions/                       # JavaScript functions
 ├── index.js                     # Entry point
 ├── submitAgent.js               # HTTP endpoint for file uploads
 ├── updateAgentMetadata.js       # Storage-triggered backtesting
+├── beginPaperTrading.js         # Deploy agents to GKE cluster
 └── utils/
     ├── authUtils.js            # Firebase authentication
     ├── multipartFileUpload.js  # File upload handling
@@ -105,10 +108,31 @@ Note: Backtest results are stored in Firebase Realtime Database.
 
 ### 4. Configure Secrets (for Python Functions)
 
+The Python functions use separate Alpaca API credentials for account creation and funding to maintain separation of concerns and avoid rate limits.
+
+Run the setup script from the Spooky Labs root directory:
+
 ```bash
-# Set Alpaca API credentials
-firebase functions:secrets:set ALPACA_BROKER_API_KEY
-firebase functions:secrets:set ALPACA_BROKER_SECRET_KEY
+# Navigate to Spooky Labs root
+cd "/Users/nonplus/Desktop/Spooky Labs"
+
+# Run the setup script
+bash setup_account_creation_secrets.sh
+```
+
+This script will prompt for two sets of credentials and create four secrets:
+- `ACCOUNT_CREATION_BROKER_API_KEY` - For createAccount function
+- `ACCOUNT_CREATION_BROKER_SECRET_KEY` - For createAccount function
+- `ACCOUNT_FUNDING_BROKER_API_KEY` - For fundAccount function
+- `ACCOUNT_FUNDING_BROKER_SECRET_KEY` - For fundAccount function
+
+Alternatively, set them manually:
+
+```bash
+firebase functions:secrets:set ACCOUNT_CREATION_BROKER_API_KEY
+firebase functions:secrets:set ACCOUNT_CREATION_BROKER_SECRET_KEY
+firebase functions:secrets:set ACCOUNT_FUNDING_BROKER_API_KEY
+firebase functions:secrets:set ACCOUNT_FUNDING_BROKER_SECRET_KEY
 ```
 
 ## Deployment
@@ -168,6 +192,12 @@ firebase deploy --only functions:python-functions:createAccount
 - **URL**: `https://fundaccount-emedpldi5a-uc.a.run.app`
 - **Method**: POST
 - **Purpose**: Fund Alpaca account with $25,000 paper money
+- **Request Body**: `{"agentId": "agent-id-here"}`
+
+#### Begin Paper Trading (beginPaperTrading)
+- **URL**: `https://us-central1-the-farm-neutrino-315cd.cloudfunctions.net/beginPaperTrading`
+- **Method**: POST
+- **Purpose**: Deploy funded agent to GKE cluster for live paper trading
 - **Request Body**: `{"agentId": "agent-id-here"}`
 
 Note: These are Gen 2 Cloud Function URLs. All endpoints require Firebase Authentication Bearer token.
@@ -232,6 +262,14 @@ console.log('Agent ID:', result.agentId);
 6. **Python function** initiates $25,000 ACH transfer (status → `funding`)
 7. **Account funded** and status updated to `funded`
 
+### Agent Deployment and Trading
+1. **User calls beginPaperTrading** with agentId (agent must be `funded`)
+2. **Cloud Build job** triggered to deploy agent (status → `deploying`)
+3. **Runtime cloned**, agent code copied from Storage
+4. **Docker image built** and pushed to GCR
+5. **Kubernetes deployment** created in GKE cluster
+6. **Status updated** to `trading` (or `deployment_failed` on error)
+
 ## Database Structure
 
 ```
@@ -250,7 +288,7 @@ creators/
   {userId}/
     agents/
       {agentId}/
-        - status                 # 'stored' | 'building' | 'success' | 'failed' | 'registering_account' | 'account_registered' | 'funded'
+        - status                 # 'stored' | 'building' | 'success' | 'failed' | 'registering_account' | 'account_registered' | 'funded' | 'deploying' | 'trading' | 'deployment_failed'
         - originalName
         - timeCreated
         - numberOfFiles
@@ -265,6 +303,13 @@ creators/
             - funding_amount     # "25000"
         - backtest/              # Backtest results JSON from runner.py
             - (backtest output data)
+        - paperTrading/          # Deployment info (when deployed)
+            - deploymentBuildId  # Cloud Build job ID
+            - deploymentStarted  # Timestamp
+            - kubernetes/
+                - namespace      # 'paper-trading'
+                - deploymentName # 'agent-{agentId}'
+                - serviceAccount # 'trading-agent'
 ```
 
 ## Local Development

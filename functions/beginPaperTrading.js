@@ -34,6 +34,9 @@ app.post('/', verifyIdToken, async (req, res) => {
     return res.status(400).json({ error: 'Missing agentId' });
   }
 
+  // Normalize agentId for Docker/Kubernetes (must be lowercase)
+  const normalizedAgentId = agentId.toLowerCase();
+
   try {
     // Verify agent is ready
     const agentRef = db.ref(`creators/${userId}/agents/${agentId}`);
@@ -78,13 +81,13 @@ app.post('/', verifyIdToken, async (req, res) => {
           {
             id: 'build-image',
             name: 'gcr.io/cloud-builders/docker',
-            args: ['build', '-t', `gcr.io/${projectId}/agent-${agentId}:latest`, '/workspace/runtime']
+            args: ['build', '-t', `gcr.io/${projectId}/agent-${normalizedAgentId}:latest`, '/workspace/runtime']
             // Build Docker image using runtime's Dockerfile with agent code embedded
           },
           {
             id: 'push-image',
             name: 'gcr.io/cloud-builders/docker',
-            args: ['push', `gcr.io/${projectId}/agent-${agentId}:latest`]
+            args: ['push', `gcr.io/${projectId}/agent-${normalizedAgentId}:latest`]
             // Push container image to Google Container Registry
           },
           {
@@ -92,11 +95,11 @@ app.post('/', verifyIdToken, async (req, res) => {
             name: 'gcr.io/cloud-builders/kubectl',
             env: ['CLOUDSDK_COMPUTE_REGION=us-central1', 'CLOUDSDK_CONTAINER_CLUSTER=paper-trading-cluster'],
             args: ['apply', '-f', '-'],
-            stdin: generateK8sManifest(agentId, userId)
+            stdin: generateK8sManifest(normalizedAgentId, agentId, userId)
             // Deploy to GKE Autopilot cluster in paper-trading namespace
           }
         ],
-        timeout: '600s'
+        timeout: { seconds: 600 }
       }
     });
 
@@ -109,7 +112,7 @@ app.post('/', verifyIdToken, async (req, res) => {
         deploymentStarted: admin.database.ServerValue.TIMESTAMP,
         kubernetes: {
           namespace: 'paper-trading',
-          deploymentName: `agent-${agentId}`,
+          deploymentName: `agent-${normalizedAgentId}`,
           serviceAccount: 'trading-agent'
         }
       },
@@ -124,28 +127,28 @@ app.post('/', verifyIdToken, async (req, res) => {
   }
 });
 
-function generateK8sManifest(agentId, userId) {
+function generateK8sManifest(normalizedAgentId, agentId, userId) {
   return `
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: agent-${agentId}
+  name: agent-${normalizedAgentId}
   namespace: paper-trading
 spec:
   replicas: 1
   selector:
     matchLabels:
-      agent-id: "${agentId}"
+      agent-id: "${normalizedAgentId}"
   template:
     metadata:
       labels:
-        agent-id: "${agentId}"
+        agent-id: "${normalizedAgentId}"
         user-id: "${userId}"
     spec:
       serviceAccountName: trading-agent
       containers:
       - name: agent
-        image: gcr.io/${projectId}/agent-${agentId}:latest
+        image: gcr.io/${projectId}/agent-${normalizedAgentId}:latest
         imagePullPolicy: Always
         env:
         - name: AGENT_ID

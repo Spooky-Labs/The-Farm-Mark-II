@@ -26,7 +26,7 @@ except ValueError:
 logger = logging.getLogger("cloud_functions")
 
 @https_fn.on_request(
-    secrets=["ALPACA_BROKER_API_KEY", "ALPACA_BROKER_SECRET_KEY"],
+    secrets=["ACCOUNT_CREATION_BROKER_API_KEY", "ACCOUNT_CREATION_BROKER_SECRET_KEY"],
     cors=options.CorsOptions(cors_origins=["*"], cors_methods=["get", "post", "options"]),
     max_instances=100,  # Gen 2 configuration
     memory=options.MemoryOption.MB_256,  # Gen 2 memory option
@@ -38,8 +38,8 @@ def createAccount(req: https_fn.Request) -> https_fn.Response:
     logger.info(f"Request Received: (Request: {req})")
     try:
         broker_client = BrokerClient(
-            api_key=os.environ.get('ALPACA_BROKER_API_KEY'),    # Still get keys from env
-            secret_key=os.environ.get('ALPACA_BROKER_SECRET_KEY'),
+            api_key=os.environ.get('ACCOUNT_CREATION_BROKER_API_KEY'),
+            secret_key=os.environ.get('ACCOUNT_CREATION_BROKER_SECRET_KEY'),
             sandbox=True # Hardcoded to sandbox for simplicity
         )
     except Exception as init_error:
