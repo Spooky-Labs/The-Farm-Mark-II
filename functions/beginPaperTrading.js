@@ -34,8 +34,12 @@ app.post('/', verifyIdToken, async (req, res) => {
     return res.status(400).json({ error: 'Missing agentId' });
   }
 
-  // Normalize agentId for Docker/Kubernetes (must be lowercase)
-  const normalizedAgentId = agentId.toLowerCase();
+  // Sanitize agentId for Docker/Kubernetes (must be lowercase, no underscores, can't start with hyphen)
+  const normalizedAgentId = agentId
+    .toLowerCase()
+    .replace(/_/g, '-')           // Replace underscores with hyphens
+    .replace(/^-+/, '')            // Remove leading hyphens
+    .replace(/[^a-z0-9-]/g, '-');  // Replace any other invalid chars with hyphen
 
   try {
     // Verify agent is ready
@@ -87,13 +91,13 @@ app.post('/', verifyIdToken, async (req, res) => {
           {
             id: 'build-image',
             name: 'gcr.io/cloud-builders/docker',
-            args: ['build', '-t', `gcr.io/${projectId}/agent-${normalizedAgentId}:latest`, '/workspace/runtime']
+            args: ['build', '-t', `gcr.io/${projectId}/agent${normalizedAgentId}:latest`, '/workspace/runtime']
             // Build Docker image using runtime's Dockerfile with agent code embedded
           },
           {
             id: 'push-image',
             name: 'gcr.io/cloud-builders/docker',
-            args: ['push', `gcr.io/${projectId}/agent-${normalizedAgentId}:latest`]
+            args: ['push', `gcr.io/${projectId}/agent${normalizedAgentId}:latest`]
             // Push container image to Google Container Registry
           },
           {
@@ -123,7 +127,7 @@ app.post('/', verifyIdToken, async (req, res) => {
         deploymentStarted: admin.database.ServerValue.TIMESTAMP,
         kubernetes: {
           namespace: 'paper-trading',
-          deploymentName: `agent-${normalizedAgentId}`,
+          deploymentName: `agent${normalizedAgentId}`,
           serviceAccount: 'trading-agent'
         }
       },
@@ -143,7 +147,7 @@ function generateK8sManifest(normalizedAgentId, agentId, userId, alpacaAccountId
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: agent-${normalizedAgentId}
+  name: agent${normalizedAgentId}
   namespace: paper-trading
 spec:
   replicas: 1
@@ -159,7 +163,7 @@ spec:
       serviceAccountName: trading-agent
       containers:
       - name: agent
-        image: gcr.io/${projectId}/agent-${normalizedAgentId}:latest
+        image: gcr.io/${projectId}/agent${normalizedAgentId}:latest
         imagePullPolicy: Always
         env:
         - name: AGENT_ID
@@ -168,16 +172,10 @@ spec:
           value: "${userId}"
         - name: ALPACA_ACCOUNT_ID
           value: "${alpacaAccountId}"
-        - name: ALPACA_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: broker-paper-trading
-              key: api-key
-        - name: ALPACA_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: broker-paper-trading
-              key: secret-key
+        - name: BROKER_API_KEY_SECRET
+          value: "runtime-broker-api-key"
+        - name: BROKER_SECRET_KEY_SECRET
+          value: "runtime-broker-secret-key"
         - name: PROJECT_ID
           valueFrom:
             configMapKeyRef:
