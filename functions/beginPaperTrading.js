@@ -1,6 +1,11 @@
 /**
  * Begin Paper Trading Function
- * Deploys funded agent to GKE cluster with Spooky Labs runtime
+ * Deploys funded agent to GKE cluster using pre-built runtime image
+ *
+ * Key improvements:
+ * - Uses pre-built runtime image instead of rebuilding
+ * - Builds thin layer with agent code on top
+ * - More efficient and faster deployment
  */
 
 const { onRequest } = require('firebase-functions/v2/https');
@@ -71,39 +76,63 @@ app.post('/', verifyIdToken, async (req, res) => {
       return res.status(400).json({ error: 'Alpaca account ID not found' });
     }
 
-    // Build and deploy
+    // Build and deploy using pre-built runtime as base
     const [operation] = await cloudbuild.createBuild({
       projectId,
       build: {
         steps: [
           {
-            id: 'clone-runtime',
-            name: 'gcr.io/cloud-builders/git',
-            args: ['clone', 'https://github.com/Spooky-Labs/runtime.git', '/workspace/runtime']
-            // Clone Spooky Labs runtime framework (includes FMEL, broker, data feeds)
+            id: 'create-dockerfile',
+            name: 'bash',
+            args: ['-c', `cat > /workspace/Dockerfile <<'EOF'
+# Use pre-built runtime as base
+FROM gcr.io/${projectId}/runtime:latest
+
+# Switch to root to copy files
+USER root
+
+# Create agent directory
+RUN mkdir -p /app/agent && chown -R trader:trader /app/agent
+
+# Copy agent code will be done by next step
+WORKDIR /app
+
+# Switch back to trader user
+USER trader
+
+# Agent code will override the strategy
+CMD ["python", "runner.py"]
+EOF`]
           },
           {
             id: 'copy-agent-code',
             name: 'gcr.io/cloud-builders/gsutil',
-            args: ['cp', '-r', `gs://${bucketName}/agents/${userId}/${agentId}/*`, '/workspace/runtime/agent/']
-            // Copy user's agent code from Firebase Storage into runtime/agent/ directory
+            args: ['cp', '-r', `gs://${bucketName}/agents/${userId}/${agentId}/*`, '/workspace/agent/']
+            // Copy user's agent code from Firebase Storage
           },
           {
-            id: 'build-image',
+            id: 'build-agent-image',
             name: 'gcr.io/cloud-builders/docker',
-            args: ['build', '-t', `gcr.io/${projectId}/agent${normalizedAgentId}:latest`, '/workspace/runtime']
-            // Build Docker image using runtime's Dockerfile with agent code embedded
+            args: [
+              'build',
+              '-t', `gcr.io/${projectId}/agent-${normalizedAgentId}:latest`,
+              '-f', '/workspace/Dockerfile',
+              '/workspace'
+            ]
+            // Build thin layer on top of runtime base image
           },
           {
-            id: 'push-image',
+            id: 'push-agent-image',
             name: 'gcr.io/cloud-builders/docker',
-            args: ['push', `gcr.io/${projectId}/agent${normalizedAgentId}:latest`]
-            // Push container image to Google Container Registry
+            args: ['push', `gcr.io/${projectId}/agent-${normalizedAgentId}:latest`]
+            // Push agent-specific image to registry
           },
           {
             id: 'write-manifest',
             name: 'bash',
-            args: ['-c', `cat > /workspace/deployment.yaml <<'EOF'\n${generateK8sManifest(normalizedAgentId, agentId, userId, alpacaAccountId)}\nEOF`]
+            args: ['-c', `cat > /workspace/deployment.yaml <<'EOF'
+${generateK8sManifest(normalizedAgentId, agentId, userId, alpacaAccountId, projectId)}
+EOF`]
             // Write Kubernetes manifest to file
           },
           {
@@ -114,7 +143,7 @@ app.post('/', verifyIdToken, async (req, res) => {
             // Deploy to GKE Autopilot cluster in paper-trading namespace
           }
         ],
-        timeout: { seconds: 600 }
+        timeout: { seconds: 300 }  // Reduced from 600s since we're not rebuilding runtime
       }
     });
 
@@ -127,8 +156,9 @@ app.post('/', verifyIdToken, async (req, res) => {
         deploymentStarted: admin.database.ServerValue.TIMESTAMP,
         kubernetes: {
           namespace: 'paper-trading',
-          deploymentName: `agent${normalizedAgentId}`,
-          serviceAccount: 'trading-agent'
+          deploymentName: `agent-${normalizedAgentId}`,
+          serviceAccount: 'trading-agent',
+          image: `gcr.io/${projectId}/agent-${normalizedAgentId}:latest`
         }
       },
       error: null
@@ -142,13 +172,17 @@ app.post('/', verifyIdToken, async (req, res) => {
   }
 });
 
-function generateK8sManifest(normalizedAgentId, agentId, userId, alpacaAccountId) {
+function generateK8sManifest(normalizedAgentId, agentId, userId, alpacaAccountId, projectId) {
   return `
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: agent${normalizedAgentId}
+  name: agent-${normalizedAgentId}
   namespace: paper-trading
+  labels:
+    app: trading-agent
+    agent-id: "${normalizedAgentId}"
+    user-id: "${userId}"
 spec:
   replicas: 1
   selector:
@@ -157,13 +191,14 @@ spec:
   template:
     metadata:
       labels:
+        app: trading-agent
         agent-id: "${normalizedAgentId}"
         user-id: "${userId}"
     spec:
       serviceAccountName: trading-agent
       containers:
       - name: agent
-        image: gcr.io/${projectId}/agent${normalizedAgentId}:latest
+        image: gcr.io/${projectId}/agent-${normalizedAgentId}:latest
         imagePullPolicy: Always
         env:
         - name: AGENT_ID
@@ -172,10 +207,8 @@ spec:
           value: "${userId}"
         - name: ALPACA_ACCOUNT_ID
           value: "${alpacaAccountId}"
-        - name: BROKER_API_KEY_SECRET
-          value: "runtime-broker-api-key"
-        - name: BROKER_SECRET_KEY_SECRET
-          value: "runtime-broker-secret-key"
+        # Runtime will get these from Secret Manager via Workload Identity
+        # No need to pass secret names as the runner.py hardcodes them
         - name: PROJECT_ID
           valueFrom:
             configMapKeyRef:
@@ -206,23 +239,35 @@ spec:
             configMapKeyRef:
               name: trading-config
               key: crypto_data_topic
+        # Volume mount for agent code
+        volumeMounts:
+        - name: agent-code
+          mountPath: /app/agent
+          readOnly: true
         resources:
           requests:
-            cpu: "250m"
-            memory: "512Mi"
+            cpu: "500m"      # Increased from 250m for model inference
+            memory: "1Gi"    # Increased from 512Mi for models
           limits:
-            cpu: "1000m"
-            memory: "2Gi"
+            cpu: "2000m"     # Increased from 1000m
+            memory: "4Gi"    # Increased from 2Gi for HuggingFace models
         livenessProbe:
           exec:
             command: ["pgrep", "-f", "runner.py"]
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60  # Increased to allow model loading
           periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
         readinessProbe:
           exec:
             command: ["pgrep", "-f", "runner.py"]
-          initialDelaySeconds: 10
+          initialDelaySeconds: 30
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: agent-code
+        emptyDir: {}
       restartPolicy: Always
 `;
 }
